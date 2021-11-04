@@ -1,0 +1,12 @@
+# setup FI environment
+lmod_base=/home_nfs/bguibertd/lmod
+nix=/home_nfs/bguibertd/nix
+
+#export NIX_REMOTE=daemon
+export NIX_STORE_DIR=$nix/store
+export NIX_STATE_DIR=$nix/var/nix
+export NIX_LINK=$HOME/.nix-profile
+export PATH=$NIX_LINK/bin:$PATH
+export MANPATH=$NIX_LINK/share/man:$MANPATH
+#export NIX_SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt
+export TMPDIR=/dev/shm

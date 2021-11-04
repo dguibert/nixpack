@@ -15,7 +15,7 @@ nixpkgs = fetchGit ({
 args = {
   localSystem = {
     inherit system;
-    gcc = { arch = target; };
+    gcc = { arch = target_; };
   };
   config = {
     replaceStdenv = import ./stdenv.nix;

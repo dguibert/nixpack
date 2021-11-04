@@ -12,9 +12,23 @@ let
 in
 {
   /* compiler pseudo-virtual */
-  compiler = ["gcc" "llvm"];
+  compiler = ["gcc" "llvm" "oneapi" "intel" "aocc" ];
 
   /* add compiler paths, providers */
+  aocc = spec: old: {
+    depends = old.depends or {} // { compiler = null; };
+    paths = {
+      # gcc bin detection is non-deterministic
+      cc  = "bin/clang";
+      cxx = "bin/clang++";
+      f77 = "bin/flang";
+      fc  = "bin/flang";
+    };
+    provides = old.provides or {} // {
+      compiler = ":";
+    };
+  };
+
   gcc = spec: old: {
     provides = old.provides or {} // {
       compiler = ":";
@@ -36,6 +50,30 @@ in
       '';
     };
   };
+
+  #intel = nocompiler;
+  intel = spec: old: {
+    depends = old.depends or {} // { compiler = null; };
+    provides = old.provides or {} // {
+      compiler = ":";
+    };
+  };
+
+  intel-oneapi-compilers = spec: old: {
+    depends = old.depends or {} // { compiler = null; };
+    paths = {
+      # gcc bin detection is non-deterministic
+      cc  = "compiler/latest/linux/bin/icx";
+      cxx = "compiler/latest/linux/bin/icpx";
+      f77 = "compiler/latest/linux/bin/ifx";
+      fc  = "compiler/latest/linux/bin/ifx";
+    };
+    provides = old.provides or {} // {
+      compiler = ":";
+      oneapi = ":";
+    };
+  };
+  oneapi = [ "intel-oneapi-compilers" ];
 
   llvm = spec: old: {
     depends = old.depends // {
@@ -112,7 +150,6 @@ in
   };
 
   /* some things don't use a compiler */
-  intel = nocompiler;
   intel-mkl = nocompiler;
   intel-mpi = nocompiler;
   intel-oneapi-mkl = nocompiler;
