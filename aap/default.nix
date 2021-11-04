@@ -1,7 +1,9 @@
-{ target ? "broadwell"
+{ target ? "x86_64"
 , cudaarch ? "60,70,80"
 }:
 let
+  lib = corePacks.lib;
+
   nixpkgsSrc = {
     #url = "git://github.com/NixOS/nixpkgs";
     url = "https://github.com/NixOS/nixpkgs";
@@ -16,7 +18,12 @@ let
     system = builtins.currentSystem;
   };
 
-  packs = import ../packs {
+  isLDep = builtins.elem "link";
+  isRDep = builtins.elem "run";
+  isRLDep = d: isLDep d || isRDep d;
+
+  corePacks = import ../packs {
+    label = "core";
     /* packs prefs */
     system = builtins.currentSystem;
     os = "rhel8";
@@ -34,6 +41,10 @@ let
     #  url = "http://github.com/spack/spack";
     #  ref = "develop";
     #  #rev = "b4c6c11e689b2292a1411e4fc60dcd49c929246d";
+    #};
+    #spackSrc = {
+    #  url = "/home_nfs/bguibertd/software-cepp-spack/spack";
+    #  ref = "develop";
     #};
     spackSrc = {
       url = "https://github.com/flatironinstitute/spack";
@@ -86,7 +97,7 @@ let
     /* global defaults for all packages (merged with per-package prefs) */
     global = {
       /* spack architecture target */
-      target = "x86_64";
+      inherit target;
       /* set spack verbose to print build logs during spack bulids (and thus
          captured by nix).  regardless, spack also keeps logs in pkg/.spack.  */
       verbose = true;
@@ -120,6 +131,10 @@ let
              packs.getResolver).  In this case, prefs will be {} if fixedDeps =
              true, or the dependency prefs from the parent if fixedDeps = false.
       resolver = [deptype: [name: <packs | prefs: pkg>]]; */
+      /* any runtime dependencies use the current packs, others fall back to core */
+      resolver = deptype:
+        if isRLDep deptype
+          then null else corePacks;
     };
     /* package-specific preferences */
     package = {
@@ -132,7 +147,7 @@ let
         version = "2.11";
       }; */
       /* specify virtual providers: can be (lists of) package or { name; ...prefs }
-      mpi = [ packs.pkgs.openmpi ];
+      mpi = [ corePacks.pkgs.openmpi ];
       java = { name = "openjdk"; version = "10"; }; */
       /* use gcc 7.x:
       gcc = {
@@ -144,7 +159,23 @@ let
           pdf = true;
         };
       }; */
-      openssl = { extern="/usr"; version="1.1.1g"; };
+      #curl = { version="7.61.1"; extern = "/usr"; };
+      gdbm = {
+        # for perl
+        version = "1.19";
+        # failing
+        tests = false;
+      };
+      knem    = { version="1.1.4.90"; extern = "/opt/knem-1.1.4.90mlnx1"; };
+      # lua: canot find -ltinfow
+      #ncurses  = { version="6.1.20180224"; variants.termlib=true; variants.abi="6"; extern = "/usr"; };
+      nix = {
+        variants = {
+          storedir = let v = builtins.getEnv "NIX_STORE_DIR"; in if v == "" then "none" else v;
+          statedir = let v = builtins.getEnv "NIX_STATE_DIR"; in if v == "" then "none" else v;
+          sandboxing = false;
+        };
+      };
       /* use an external slurm: */
       slurm = {
         extern = "/usr";
@@ -154,18 +185,7 @@ let
           hwloc = true;
         };
       };
-      gdbm = {
-        # for perl
-        version = "1.19";
-        # failing
-        tests = false;
-      };
-      nix = {
-        variants = {
-          storedir = let v = builtins.getEnv "NIX_STORE_DIR"; in if v == "" then "none" else v;
-          statedir = let v = builtins.getEnv "NIX_STATE_DIR"; in if v == "" then "none" else v;
-        };
-      };
+      openssl = { version="1.1.1g"; extern = "/usr"; };
 
       #berkeley-db = {
       #  extern = nixpkgs.db;
@@ -178,7 +198,13 @@ let
   /* A set of packages with different preferences, based on packs above.
      This set is used to bootstrap gcc, but other packs could also be used to set
      different virtuals, versions, variants, compilers, etc.  */
-  bootstrapPacks = packs.withPrefs {
+  bootstrapPacks = corePacks.withPrefs {
+    label = "bootstrap";
+    global = {
+      target = "x86_64";
+      resolver = null;
+      tests = false;
+    };
     package = {
       /* must be set to an external compiler capable of building compiler (above) */
       compiler = {
@@ -187,21 +213,28 @@ let
         extern = "/usr"; /* install prefix */
         /* can also have multiple layers of bootstrapping, where each compiler is built by another */
       };
-      /* can speed up bootstrapping by providing more externs
-      zlib = {
-        extern = "/usr";
-        version = "...";
-      }; ... */
+      /* can speed up bootstrapping by providing more externs */
+      autoconf = { version="2.69"; extern = "/usr"; };
+      automake = { version="1.16.1"; extern = "/usr"; };
+      bison    = { version="3.0.4"; extern = "/usr"; };
+      cmake    = { version="3.11.4"; extern = "/usr"; };
+      cpio     = { version="2.12"; extern = "/usr"; };
+      diffutis = { version="3.6"; extern = "/usr"; };
+      flex     = { version="2.6.1"; variants.flex=true; extern = "/usr"; };
+      libtool  = { version="2.4.6"; extern = "/usr"; };
+      m4       = { version="1.4.18"; extern = "/usr"; };
+      perl    = { version="5.26.3"; variants = { cpanm=false; shared=true; threads=true; }; extern = "/usr"; };
+      pkgconf = { version="1.4.2"; extern = "/usr"; };
     };
   };
 
 in
 
-packs // {
-  mods = packs.modules {
+corePacks // rec {
+  mods = corePacks.modules {
     /* this correspond to module config in spack */
     /* modtype = "lua"; */
-    coreCompilers = [packs.pkgs.compiler bootstrapPacks.pkgs.compiler];
+    coreCompilers = [corePacks.pkgs.compiler bootstrapPacks.pkgs.compiler];
     /*
     config = {
       hiearchy = ["mpi"];
@@ -225,7 +258,7 @@ packs // {
       };
     };
     */
-    pkgs = with packs.pkgs; [
+    pkgs = with corePacks.pkgs; [
       gcc
       { pkg = gcc.withPrefs { # override package defaults
           version = "10";
@@ -256,4 +289,8 @@ packs // {
       */
     ];
   };
+
+  traceModSpecs = lib.traceSpecTree (builtins.concatMap (p:
+    let q = p.pkg or p; in
+    q.pkgs or (if q ? spec then [q] else [])) mods.pkgs);
 }
