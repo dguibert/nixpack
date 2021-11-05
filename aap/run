@@ -1,5 +1,7 @@
 #!/bin/sh -e
 
+${VERBOSE:-false} && set -x
+
 current_dir=`dirname $0`
 . $current_dir/env
 nixfile=$current_dir
