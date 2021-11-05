@@ -7,8 +7,10 @@ let
   nixpkgsSrc = {
     #url = "git://github.com/NixOS/nixpkgs";
     url = "https://github.com/NixOS/nixpkgs";
-    ref = "master";
+    #ref = "master";
     #rev = "72bab23841f015aeaf5149a4e980dc696c59d7ca";
+    ref = "release-21.05";
+    rev = "564cb4d81d4f734dd068684adec5a60077397fe9";
   };
 
   isLDep = builtins.elem "link";
@@ -460,7 +462,9 @@ let
   nixpkgs = with corePacks.nixpkgs; [
     #nix
     #pythonPackages.datalad
-    #git-annex
+    git-annex
+    htop
+    git
   ];
 
   # package already present
