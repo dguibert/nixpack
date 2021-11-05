@@ -5,12 +5,16 @@ let
   lib = corePacks.lib;
 
   nixpkgsSrc = {
-    #url = "git://github.com/NixOS/nixpkgs";
-    url = "https://github.com/NixOS/nixpkgs";
+    url = "git://github.com/dguibert/nixpkgs";
+    ref = "pu-nixpack";
+    rev = "91375b7c4ab687aab6b8485ca35003fa43435406";
+    #url = "https://github.com/NixOS/nixpkgs";
     #ref = "master";
     #rev = "72bab23841f015aeaf5149a4e980dc696c59d7ca";
-    ref = "release-21.05";
-    rev = "564cb4d81d4f734dd068684adec5a60077397fe9";
+    #ref = "release-21.05";
+    #rev = "564cb4d81d4f734dd068684adec5a60077397fe9";
+    #rev = "96ded94eb0a8ca3781fb52087b40e09425e384cb";
+    #ref = "master";
   };
 
   isLDep = builtins.elem "link";
