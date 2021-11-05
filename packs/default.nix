@@ -101,7 +101,8 @@ lib.fix (packs: with packs; {
   withPrefs = p: packsWithPrefs (prefsUpdate packPrefs
     ({ label = "withPrefs"; } // p));
 
-  makeSpackConfig = import ../spack/config.nix packs;
+
+  makeSpackConfig = import ../spack/config.nix packs spackPath;
 
   inherit spack spackPython spackPath;
   spackConfig = makeSpackConfig (lib.recursiveUpdate defaultSpackConfig packPrefs.spackConfig);
@@ -111,6 +112,7 @@ lib.fix (packs: with packs; {
     inherit system;
     builder = ../spack/install.sh;
     src = ../spack/nixpack.py;
+    PATH = spackPath;
   };
 
   /* common attributes for running spack */
