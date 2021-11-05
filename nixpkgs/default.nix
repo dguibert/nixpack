@@ -4,6 +4,8 @@
 }:
 
 let
+# gcc arch is x64-64
+target_ = builtins.replaceStrings ["x86_64"] ["x86-64"] target;
 
 nixpkgs = fetchGit ({
   url = "git://github.com/NixOS/nixpkgs";
