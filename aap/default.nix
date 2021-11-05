@@ -618,7 +618,7 @@ let
 
   modCache = corePacks.lmodCache mods;
 
-  lmodSite = import ../lmod corePacks;
+  #lmodSite = import ./lmod corePacks;
 
 in
 
@@ -626,7 +626,7 @@ corePacks // {
   inherit
     mods
     modCache
-    lmodSite
+    #lmodSite
   ;
 
   traceModSpecs = lib.traceSpecTree (builtins.concatMap (p:

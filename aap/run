@@ -58,7 +58,8 @@ case "$cmd" in
 				#for fix in singularity/bin/spack_perms_fix.sh ; do
 				#	sudo $fix || echo "YOU MUST RUN: sudo `realpath $fix`"
 				#done
-				attrs="mods modCache lmodSite"
+				#attrs="mods modCache lmodSite" # lmodSite not implemented yet
+				attrs="mods modCache"
 				;;
 			(jupyter)
 				prof=nixpack-$prof
