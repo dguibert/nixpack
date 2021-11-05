@@ -1,0 +1,102 @@
+#!/bin/sh -e
+
+current_dir=`dirname $0`
+. $current_dir/env
+nixfile=$current_dir
+site=$(hostname -s)
+
+if [[ `hostname -s` = pcn* ]] ; then
+	# popeye
+	site=popeye
+	nixfile="$nixfile --argstr target skylake --argstr cudaarch 70"
+fi
+
+traceSpecs() {
+	nix-instantiate --eval -A "$1" $nixfile |& sed 's/^trace: //'
+}
+
+if [[ $# -eq 0 ]] ; then
+	cmd=help
+else
+	cmd="$1"
+	shift
+fi
+case "$cmd" in
+	(build)
+		exec nix-build --show-trace "$@" -A mods $nixfile
+		;;
+	(spec)
+		if [[ $# -eq 0 ]] ; then
+			traceSpecs traceModSpecs
+		else
+			for p in "$@" ; do
+				traceSpecs "traceSpecs.$p"
+			done
+		fi
+		;;
+	(gc)
+		exec nix-store --gc
+		;;
+	(release)
+		if ! git diff-index --quiet HEAD -- ; then
+			echo "Local modifications: refusing to release"
+			exit 1
+		fi
+		prof=$1
+		case "$prof" in
+			(nix)
+				attrs="nixpkgs.nix nixpkgs.git"
+				;;
+			(lmod)
+				attrs="pkgs.lmod"
+				;;
+			(modules|nixpack|"")
+				prof=nixpack
+				#nix-build -o singularity -A pkgs.singularity $nixfile
+				#for fix in singularity/bin/spack_perms_fix.sh ; do
+				#	sudo $fix || echo "YOU MUST RUN: sudo `realpath $fix`"
+				#done
+				attrs="mods modCache lmodSite"
+				;;
+			(jupyter)
+				prof=nixpack-$prof
+				attrs="jupyter"
+				;;
+			(*)
+				echo "Unknown release"
+				exit 1
+				;;
+		esac
+		profile=$NIX_STATE_DIR/profiles/system/$prof
+		nix-env -p $profile -i -r -f $nixfile -A $attrs
+		l=$(readlink $profile)
+		git tag $site/${l%-link} HEAD
+		;;
+	(spack)
+		nix-build -o spackBin -A spackBin $nixfile
+		exec ./spackBin "$@"
+		;;
+	(*)
+		if [[ $cmd != help ]] ; then
+			echo "Unknown command"
+		fi
+
+		cat <<EOF
+Usage: $0 COMMAND
+
+Commands:
+
+  build        Build modules into result.  Takes the same arguments as
+               nix-build (-jN, --cores M, -K, ...).
+  spec [PKG]   Print the spec tree for a specific package or all modules,
+	       along with the total number of unique packages.
+  gc           Cleanup any unreferenced nix stores (nix-store --gc).
+  release      Publish a release profile for...
+    modules    nixpack lmod modules (default)
+    jupyter    jupyterhub server environment
+    nix        nix build environment
+  spack ...    Run a spack command in the nixpack environment (things like list
+	       and info work, but those managing packages will not)
+
+EOF
+esac
