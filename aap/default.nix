@@ -140,7 +140,7 @@ let
     /* package-specific preferences */
     package = {
       /* compiler is an implicit virtual dependency for every package */
-      compiler = bootstrapPacks.pkgs.gcc;
+      compiler = bootstrapPacks.pkgs.compiler;
       /* preferences for individual packages or virtuals */
       /* get cpio from system:
       cpio = {
