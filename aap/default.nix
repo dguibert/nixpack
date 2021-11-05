@@ -1,4 +1,4 @@
-{ target ? "x86_64"
+{ target ? "x86-64"
 , cudaarch ? "60,70,80"
 }:
 let
@@ -9,13 +9,6 @@ let
     url = "https://github.com/NixOS/nixpkgs";
     ref = "master";
     #rev = "72bab23841f015aeaf5149a4e980dc696c59d7ca";
-  };
-
-  nixpkgs = import (fetchGit ({
-    url = "https://github.com/NixOS/nixpkgs";
-    ref = "master";
-  } // nixpkgsSrc)) {
-    system = builtins.currentSystem;
   };
 
   isLDep = builtins.elem "link";
@@ -42,16 +35,16 @@ let
     #  ref = "develop";
     #  #rev = "b4c6c11e689b2292a1411e4fc60dcd49c929246d";
     #};
-    #spackSrc = {
-    #  url = "/home_nfs/bguibertd/software-cepp-spack/spack";
-    #  ref = "develop";
-    #};
     spackSrc = {
-      url = "https://github.com/flatironinstitute/spack";
-      ref = "fi-nixpack";
-      rev = "9526a13086fbc1790814edb84cdd9b65dbfc8f90";
-      #ref = "develop";
+      url = "/home_nfs/bguibertd/software-cepp-spack/spack";
+      ref = "develop";
     };
+    #spackSrc = {
+    #  url = "https://github.com/flatironinstitute/spack";
+    #  ref = "fi-nixpack";
+    #  rev = "9526a13086fbc1790814edb84cdd9b65dbfc8f90";
+    #  #ref = "develop";
+    #};
 
     /* extra config settings for spack itself.  Can contain any standard spack
        configuration, but don't put compilers (automatically generated), packages
@@ -67,7 +60,6 @@ let
        etc.  These can be string paths to the system or to packages/environments
        from nixpkgs or similar, but regardless need to be external to nixpacks. */
     spackPython = "/usr/bin/python3";
-    #spackPython = nixpkgs.python;
     spackPath = "/bin:/usr/bin";
 
     /* packs can optionally include nixpkgs for additional packages or bootstrapping.
@@ -87,12 +79,21 @@ let
     repos = [
       ../spack/repo
     ];
-    /* updates to the spack repo (see patch/default.nix for examples)
+    /* updates to the spack repo (see patch/default.nix for examples) */
     repoPatch = {
-      package = [spec: [old:]] {
-        new...
+      openmpi = spec: old: {
+        build = {
+          setup = ''
+            configure_args = pkg.configure_args()
+            configure_args.append('CPPFLAGS=-I/usr/include/infiniband')
+            if spec.satisfies("~pmix"):
+              configure_args.remove('--without-pmix')
+            pkg.configure_args = lambda: configure_args
+          '';
+        };
       };
-    }; */
+
+    };
 
     /* global defaults for all packages (merged with per-package prefs) */
     global = {
@@ -166,9 +167,24 @@ let
         # failing
         tests = false;
       };
+      hdf5 = {
+        version = "1.10";
+        variants = {
+          hl = true;
+          fortran = true;
+          cxx = true;
+        };
+      };
       knem    = { version="1.1.4.90"; extern = "/opt/knem-1.1.4.90mlnx1"; };
       # lua: canot find -ltinfow
       #ncurses  = { version="6.1.20180224"; variants.termlib=true; variants.abi="6"; extern = "/usr"; };
+      libevent = {
+        # for pmix
+        version = "2.1.8";
+      };
+      mpi = {
+        name = "openmpi";
+      };
       nix = {
         variants = {
           storedir = let v = builtins.getEnv "NIX_STORE_DIR"; in if v == "" then "none" else v;
@@ -181,11 +197,46 @@ let
         extern = "/usr";
         version = "19.05.8";
         variants = {
-          pmix = true;
+          #pmix = true;
           hwloc = true;
         };
       };
+      openmpi = {
+        version = "4.1";
+        variants = {
+          fabrics = {
+            none = false;
+            #ofi = true;
+            ucx = true;
+            #psm = true;
+            #psm2 = true;
+            #verbs = true;
+            knem = true;
+          };
+          schedulers = {
+            none = false;
+            slurm = true;
+          };
+          pmi = true;
+          pmix = false;
+          static = false;
+          thread_multiple = true;
+          legacylaunchers = true;
+        };
+      };
       openssl = { version="1.1.1g"; extern = "/usr"; };
+      ucx = {
+        variants = {
+          thread_multiple = true;
+          cma = true;
+          rc = true;
+          dc = true;
+          ud = true;
+          mlx5-dv = true;
+          ib-hw-tm = true;
+          knem = true;
+        };
+      };
 
       #berkeley-db = {
       #  extern = nixpkgs.db;
@@ -201,7 +252,7 @@ let
   bootstrapPacks = corePacks.withPrefs {
     label = "bootstrap";
     global = {
-      target = "x86_64";
+      target = "x86-64";
       resolver = null;
       tests = false;
     };
@@ -214,81 +265,369 @@ let
         /* can also have multiple layers of bootstrapping, where each compiler is built by another */
       };
       /* can speed up bootstrapping by providing more externs */
-      autoconf = { version="2.69"; extern = "/usr"; };
+      autoconf = { version="2.69";   extern = "/usr"; };
       automake = { version="1.16.1"; extern = "/usr"; };
-      bison    = { version="3.0.4"; extern = "/usr"; };
+      bison    = { version="3.0.4";  extern = "/usr"; };
       cmake    = { version="3.11.4"; extern = "/usr"; };
-      cpio     = { version="2.12"; extern = "/usr"; };
-      diffutis = { version="3.6"; extern = "/usr"; };
-      flex     = { version="2.6.1"; variants.flex=true; extern = "/usr"; };
-      libtool  = { version="2.4.6"; extern = "/usr"; };
+      cpio     = { version="2.12";   extern = "/usr"; };
+      diffutis = { version="3.6";    extern = "/usr"; };
+      flex     = { version="2.6.1";  extern = "/usr"; variants.flex=true; };
+      libtool  = { version="2.4.6";  extern = "/usr"; };
       m4       = { version="1.4.18"; extern = "/usr"; };
-      perl    = { version="5.26.3"; variants = { cpanm=false; shared=true; threads=true; }; extern = "/usr"; };
-      pkgconf = { version="1.4.2"; extern = "/usr"; };
+      perl     = { version="5.26.3"; extern = "/usr"; variants = { cpanm=false; shared=true; threads=true; }; };
+      pkgconf  = { version="1.4.2";  extern = "/usr"; };
     };
   };
 
-in
+  mkCompilers = base: gen:
+    builtins.map (compiler: gen (rec {
+      inherit compiler;
+      isCore = compiler == corePacks.pkgs.compiler;
+      packs = if isCore then base else
+        base.withCompiler compiler;
+      defaulting = pkg: { default = isCore; inherit pkg; };
+    }))
+    [
+      corePacks.pkgs.compiler
+      (corePacks.pkgs.gcc.withPrefs { version = "10.2"; })
+      #(corePacks.pkgs.gcc.withPrefs { version = "11"; })
+    ];
 
-corePacks // rec {
+  mkMpis = base: gen:
+    builtins.map (mpi: gen {
+      inherit mpi;
+      packs = base.withPrefs {
+        package = {
+          inherit mpi;
+        };
+        global = {
+          variants = {
+            mpi = true;
+          };
+        };
+        package = {
+          fftw = {
+            variants = {
+              precision = {
+                quad = false;
+              };
+            };
+          };
+        };
+      };
+      isOpenmpi = mpi.name == "openmpi";
+      isCore = mpi == { name = "openmpi"; };
+    })
+    [
+      { name = "openmpi"; }
+    ];
+
+  withPython = packs: py: let
+    /* we can't have multiple python versions in a dep tree because of spack's
+       environment polution, but anything that doesn't need python at runtime
+       can fall back on default */
+    ifHasPy = p: o: name: prefs:
+      let q = p.getResolver name prefs; in
+      if builtins.any (p: p.spec.name == "python") (lib.findDeps (x: isRLDep x.deptype) q)
+        then q
+        else o.getResolver name prefs;
+    pyPacks = packs.withPrefs {
+      label = "${packs.label}.python";
+      package = {
+        python = py;
+      };
+      global = {
+        resolver = deptype: ifHasPy pyPacks
+          (if isRLDep deptype
+            then packs
+            else corePacks);
+      };
+    };
+    in pyPacks;
+
+  corePython = { version = "3.8"; };
+
+  mkPythons = base: gen:
+    builtins.map (python: gen (rec {
+      inherit python;
+      isCore = python == corePython;
+      packs = withPython base python;
+    }))
+    [
+      corePython
+      #{ version = "3.9"; }
+    ];
+
+  pyView = pl: corePacks.pythonView {
+    pkgs = lib.findDeps (x: lib.hasPrefix "py-" x.name) pl;
+  };
+
+
+  /* packages that we build both with and without mpi */
+  optMpiPkgs = useMPI: packs: with (packs.withPrefs {
+    global = {
+      variants = {
+        mpi = useMPI;
+      };
+    };
+  }).pkgs; [
+    boost
+    (fftw.withPrefs { version = "2"; variants = { precision = { long_double = false; quad = false; }; }; })
+    fftw
+    (hdf5.withPrefs { version = "1.8"; })
+    { pkg = hdf5; # default 1.10
+      default = true;
+    }
+    (hdf5.withPrefs { version = "1.12"; })
+    netcdf-c
+    netcdf-fortran
+  ];
+
+  pkgExtensions = f: pkgs:
+    let ext = builtins.concatStringsSep ", " (map
+      (p: f (p.spec.name + "/" + p.spec.version)) pkgs);
+    in ''
+      extensions("${ext}")
+    '';
+
+  preExtensions = pre: view: pkgExtensions
+    (lib.takePrefix pre)
+    (builtins.filter (p: lib.hasPrefix pre p.spec.name) view.pkgs);
+
+  # XXX these spack names don't quite match the modules
+  pyExtensions = preExtensions "py-";
+  rExtensions = preExtensions "r-";
+
+  pkgStruct = {
+    pkgs = with corePacks.pkgs; [
+      cmake
+      cuda
+      curl
+    ]
+    ++
+    map (v: {
+      pkg = intel-parallel-studio.withPrefs
+        { inherit (v) version; extern = "/opt/intel/compilers_and_libraries_2017.7.259_${v.path}"; };
+      }) [
+        #{ version = "cluster.2017.7"; path = "2017.7.259"; }
+        #{ version = "cluster.2020.4"; path = "2020-4"; }
+      ]
+    ;
+
+    compilers = mkCompilers corePacks (comp: comp // {
+      pkgs = with comp.packs.pkgs; [
+        (comp.defaulting compiler)
+      ] ++
+      optMpiPkgs false comp.packs;
+
+      mpis = mkMpis comp.packs (mpi: mpi // {
+        pkgs = with mpi.packs.pkgs;
+          lib.optionals mpi.isOpenmpi ([
+            mpi.packs.pkgs.mpi # others are above, compiler-independent
+          ]
+        )
+        ++ [
+          osu-micro-benchmarks
+        ] ++
+        optMpiPkgs true mpi.packs
+        ++
+        lib.optionals comp.isCore (lib.optionals mpi.isOpenmpi [
+          ior
+        ]);
+
+        pythons = mkPythons mpi.packs (py: py // {
+          view = {
+            pkgs = [];
+          };
+          #view = py.packs.pythonView { pkgs = with py.packs.pkgs; [
+          #  #py-mpi4py
+          #  #py-h5py
+          #]; };
+          pkgs = [
+          ];
+        });
+      });
+
+      pythons = mkPythons comp.packs (py: py // {
+        view = with py.packs.pkgs; (pyView ([
+          python
+        ])).overrideView {
+        };
+      });
+    });
+  };
+
+  nixpkgs = with corePacks.nixpkgs; [
+    #nix
+    #pythonPackages.datalad
+    #git-annex
+  ];
+
+  # package already present
+  static = [
+    #{
+    #  name = "gpfs";
+    #  prefix = "/usr/lpp/mmfs";
+    #  projection = "{name}";
+    #}
+    { name = "modules-traditional";
+      projection = "{name}";
+      static = ''
+        whatis("Switch to the old tcl modules")
+        local lm = loaded_modules()
+        for i = 1, #lm do
+          conflict(lm[i].fullName)
+        end
+        setenv("ENABLE_LMOD", "0")
+        unsetenv("MODULESPATH")
+        unsetenv("MODULES_NEW")
+        if mode() == "load" then
+          if myShellType() == "csh" then
+            execute {cmd="clearLmod ; source /etc/profile.d/modules.csh ;", modeA={"load"}}
+          else
+            execute {cmd="clearLmod ; . /etc/profile.d/modules.sh ;", modeA={"load"}}
+          end
+        end
+      '';
+    }
+    { name = "modules-new";
+      projection = "{name}";
+      static = ''
+        LmodMessage("You are already using the new modules.  You can load 'modules-traditional' to switch to the old ones.")
+        os.exit(1)
+      '';
+    }
+
+    { path = ".modulerc";
+      static =
+        let alias = {
+          #"nvidia/nvhpc" = "nvhpc";
+          #"openmpi2" = "openmpi/2";
+          #"openmpi4" = "openmpi/4";
+          #"python3" = "python/3";
+          #"qt5" = "qt/5";
+        }; in
+        # reloading identical aliases triggers a bug in old lmod
+        # wrap in hacky conditional (since old lmod runs modulerc without sandbox, somehow)
+        ''
+          if _VERSION == nil then
+        '' +
+        builtins.concatStringsSep "" (builtins.map (n: ''
+            module_alias("${n}", "${alias.${n}}")
+        '') (builtins.attrNames alias))
+        + ''
+          end
+          hide_version("modules-new")
+        '';
+    }
+  ];
+
+  pkgMod = p: if p ? pkg then p else { pkg = p; };
+
+  modPkgs = with pkgStruct;
+    pkgs
+    ++
+    builtins.concatMap (comp: with comp;
+      pkgs
+      ++
+      builtins.concatMap (mpi: with mpi;
+        pkgs
+      #  ++
+      #  builtins.concatMap (py: [{
+      #    pkg = py.view;
+      #    default = py.isCore;
+      #    projection = "python-mpi/{^python.version}";
+      #    #autoload = [comp.pythons[py].view]
+      #    postscript = pyExtensions py.view;
+      #  }] ++ py.pkgs) pythons
+      ) mpis
+      #++
+      #builtins.concatMap (py: with py; [
+      #  { pkg = view;
+      #    default = isCore;
+      #    postscript = pyExtensions view;
+      #  }
+      #]) pythons
+    ) compilers
+    #++
+    #map (pkg: pkgMod pkg // { projection = "{name}/{version}-libcpp"; })
+    #  [] #clangcpp.pkgs
+    #++
+    #map (pkg: pkgMod pkg // { projection = "{name}/{version}-nvhpc"; })
+    #  [] #nvhpc.pkgs
+    #++
+    #[ { pkg = jupyter;
+    #    projection = "jupyterhub";
+    #  }
+    #]
+    ++
+    map (p: builtins.parseDrvName p.name // {
+      prefix = p;
+      context = {
+        short_description = p.meta.description or null;
+        long_description = p.meta.longDescription or null;
+      };
+      projection = "{name}/{version}-nix";
+    })
+      nixpkgs
+    ++
+    static
+  ;
+
+
   mods = corePacks.modules {
     /* this correspond to module config in spack */
     /* modtype = "lua"; */
-    coreCompilers = [corePacks.pkgs.compiler bootstrapPacks.pkgs.compiler];
-    /*
+    coreCompilers = map (p: p.pkgs.compiler) [
+      corePacks
+      bootstrapPacks
+    ];
     config = {
-      hiearchy = ["mpi"];
+      hierarchy = ["mpi"];
       hash_length = 0;
-      projections = {
-        # warning: order is lost
-        "package+variant" = "{name}/{version}-variant";
-      };
+      #projections = {
+      #  # warning: order is lost
+      #  "package+variant" = "{name}/{version}-variant";
+      #};
       prefix_inspections = {
-        "dir" = ["VAR"];
+        "lib" = ["LIBRARY_PATH"];
+        "lib64" = ["LIBRARY_PATH"];
+        "include" = ["C_INCLUDE_PATH" "CPLUS_INCLUDE_PATH"];
+        "" = ["{name}_ROOT" "{name}_BASE"];
       };
       all = {
         autoload = "none";
+        prerequisites = "direct";
+        suffixes = {
+          "^mpi" = "mpi";
+        };
+        filter = {
+          environment_blacklist = ["CC" "FC" "CXX" "F77"];
+        };
       };
-      package = {
+      openmpi = {
         environment = {
-          prepend_path = {
-            VAR = "{prefix}/path";
+          set = {
+            OPENMPI_VERSION = "{version}";
           };
         };
       };
     };
-    */
-    pkgs = with corePacks.pkgs; [
-      gcc
-      { pkg = gcc.withPrefs { # override package defaults
-          version = "10";
-        };
-        default = true; # set as default version
-        # extra content to append to module file
-        postscript = ''
-          LModMessage("default gcc loaded")
-        '';
-      }
-      perl
-      /*
-      { # a custom module, not from spack
-        name = "other-package";
-        version = "1.2";
-        prefix = "/opt/other";
-        # overrides for module config
-        environment = {
-          prepend_path = {
-            VAR = "{prefix}/path";
-          };
-        };
-        projection = "{name}/{version}-local";
-        context = { # other variables to set in the template
-          short_description = "Some other package";
-        };
-      }
-      */
-    ];
+    pkgs = modPkgs;
   };
+
+  modCache = corePacks.lmodCache mods;
+
+  lmodSite = import ../lmod corePacks;
+
+in
+
+corePacks // {
+  inherit
+    mods
+    modCache
+    lmodSite
+  ;
 
   traceModSpecs = lib.traceSpecTree (builtins.concatMap (p:
     let q = p.pkg or p; in
