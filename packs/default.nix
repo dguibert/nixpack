@@ -96,7 +96,7 @@ lib.fix (packs: with packs; {
   spack = if builtins.isString spackSrc then spackSrc else
     builtins.fetchGit ({ name = "spack"; url = "git://github.com/spack/spack"; } // spackSrc);
 
-  makeSpackConfig = import ../spack/config.nix packs;
+  makeSpackConfig = import ../spack/config.nix packs spackPath;
 
   inherit spackPython spackPath;
   spackConfig = makeSpackConfig (lib.recursiveUpdate defaultSpackConfig packPrefs.spackConfig);
@@ -106,6 +106,7 @@ lib.fix (packs: with packs; {
     inherit system;
     builder = ../spack/install.sh;
     src = ../spack/nixpack.py;
+    PATH = spackPath;
   };
 
   /* common attributes for running spack */
