@@ -1,20 +1,20 @@
-{ target ? "x86-64"
+{ target ? "x86_64"
 , cudaarch ? "60,70,80"
 }:
 let
   lib = corePacks.lib;
 
   nixpkgsSrc = {
-    url = "git://github.com/dguibert/nixpkgs";
+    url = "https://github.com/dguibert/nixpkgs";
     ref = "pu-nixpack";
-    rev = "91375b7c4ab687aab6b8485ca35003fa43435406";
+    rev = "ecd445b9d09c4740409bc204d2f98d88b9c884cd";
     #url = "https://github.com/NixOS/nixpkgs";
     #ref = "master";
     #rev = "72bab23841f015aeaf5149a4e980dc696c59d7ca";
+
+    #url = "https://github.com/NixOS/nixpkgs";
     #ref = "release-21.05";
-    #rev = "564cb4d81d4f734dd068684adec5a60077397fe9";
-    #rev = "96ded94eb0a8ca3781fb52087b40e09425e384cb";
-    #ref = "master";
+    #rev = "2fd5c69fa6057870687a6589a8c95da955188f91";
   };
 
   isLDep = builtins.elem "link";
@@ -41,16 +41,22 @@ let
     #  ref = "develop";
     #  #rev = "b4c6c11e689b2292a1411e4fc60dcd49c929246d";
     #};
-    spackSrc = {
-      url = "/home_nfs/bguibertd/software-cepp-spack/spack";
-      ref = "develop";
-    };
+    #spackSrc = {
+    #  url = "/home_nfs/bguibertd/software-cepp-spack/spack";
+    #  ref = "develop";
+    #};
     #spackSrc = {
     #  url = "https://github.com/flatironinstitute/spack";
     #  ref = "fi-nixpack";
-    #  rev = "9526a13086fbc1790814edb84cdd9b65dbfc8f90";
-    #  #ref = "develop";
+    ##  rev = "9526a13086fbc1790814edb84cdd9b65dbfc8f90";
+    ##  #ref = "develop";
     #};
+    spackSrc = {
+      url = "https://github.com/flatironinstitute/spack";
+      ref = "fi-nixpack";
+      rev = "2311242d266d90726222002a262b50a165adb6bf";
+    };
+
 
     /* extra config settings for spack itself.  Can contain any standard spack
        configuration, but don't put compilers (automatically generated), packages
@@ -258,7 +264,7 @@ let
   bootstrapPacks = corePacks.withPrefs {
     label = "bootstrap";
     global = {
-      target = "x86-64";
+      target = "x86_64";
       resolver = null;
       tests = false;
     };
@@ -466,7 +472,7 @@ let
   nixpkgs = with corePacks.nixpkgs; [
     #nix
     #pythonPackages.datalad
-    git-annex
+    #git-annex
     htop
     git
   ];
@@ -624,18 +630,17 @@ let
     pkgs = modPkgs;
   };
 
-  modCache = corePacks.lmodCache mods;
 
-  #lmodSite = import ./lmod corePacks;
+  modSite = import ./lmod corePacks mods;
 
 in
 
 corePacks // {
   inherit
     mods
-    modCache
-    #lmodSite
-  ;
+    modSite
+    /*jupyter*/
+    ;
 
   traceModSpecs = lib.traceSpecTree (builtins.concatMap (p:
     let q = p.pkg or p; in
