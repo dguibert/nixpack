@@ -7,10 +7,9 @@ current_dir=`dirname $0`
 nixfile=$current_dir
 site=$(hostname -s)
 
-if [[ `hostname -s` = pcn* ]] ; then
-	# popeye
-	site=popeye
-	nixfile="$nixfile --argstr target skylake --argstr cudaarch 70"
+if [[ `hostname -s` = spartan* ]] ; then
+	site=spartan
+	#nixfile="$nixfile --argstr target skylake --argstr cudaarch 70"
 fi
 
 traceSpecs() {
