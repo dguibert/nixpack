@@ -21,6 +21,9 @@ let
   isRDep = builtins.elem "run";
   isRLDep = d: isLDep d || isRDep d;
 
+  rpmVersion = pkg: lib.capture ["/bin/rpm" "-q" "--queryformat=%{VERSION}" pkg];
+  rpmExtern = pkg: { extern = "/usr"; version = rpmVersion pkg; };
+
   corePacks = import ../packs {
     label = "core";
     /* packs prefs */
@@ -159,6 +162,7 @@ let
         extern = "/usr";
         version = "2.11";
       }; */
+      cpio = rpmExtern "cpio"; # some intel installers need this -- avoid compiler dependency
       /* specify virtual providers: can be (lists of) package or { name; ...prefs }
       mpi = [ corePacks.pkgs.openmpi ];
       java = { name = "openjdk"; version = "10"; }; */
@@ -204,6 +208,7 @@ let
           sandboxing = false;
         };
       };
+      shadow = rpmExtern "shadow-utils";
       /* use an external slurm: */
       slurm = {
         extern = "/usr";
@@ -272,22 +277,29 @@ let
       /* must be set to an external compiler capable of building compiler (above) */
       compiler = {
         name = "gcc";
-        version = "8.4.1";
-        extern = "/usr"; /* install prefix */
-        /* can also have multiple layers of bootstrapping, where each compiler is built by another */
+      } // rpmExtern "gcc";
+
+      autoconf = rpmExtern "autoconf";
+      automake = rpmExtern "automake";
+      bzip2 = rpmExtern "bzip2";
+      diffutils = rpmExtern "diffutils";
+      libtool = rpmExtern "libtool";
+      m4 = rpmExtern "m4";
+      ncurses = rpmExtern "ncurses" // {
+        variants = {
+          termlib = true;
+          abi = "6";
+        };
       };
-      /* can speed up bootstrapping by providing more externs */
-      autoconf = { version="2.69";   extern = "/usr"; };
-      automake = { version="1.16.1"; extern = "/usr"; };
-      bison    = { version="3.0.4";  extern = "/usr"; };
-      cmake    = { version="3.11.4"; extern = "/usr"; };
-      cpio     = { version="2.12";   extern = "/usr"; };
-      diffutis = { version="3.6";    extern = "/usr"; };
-      flex     = { version="2.6.1";  extern = "/usr"; variants.flex=true; };
-      libtool  = { version="2.4.6";  extern = "/usr"; };
-      m4       = { version="1.4.18"; extern = "/usr"; };
-      perl     = { version="5.26.3"; extern = "/usr"; variants = { cpanm=false; shared=true; threads=true; }; };
-      pkgconf  = { version="1.4.2";  extern = "/usr"; };
+      openssl = rpmExtern "openssl" // {
+        variants = {
+          fips = false;
+        };
+      };
+      perl = rpmExtern "perl";
+      pkgconfig = rpmExtern "pkgconfig";
+      psm = {};
+      zlib = rpmExtern "zlib";
     };
   };
 
