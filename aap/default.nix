@@ -505,11 +505,11 @@ let
 
   nixpkgs = with corePacks.nixpkgs; [
     #nix
-    #pythonPackages.datalad
-    #git-annex
     git
+    git-annex
     htop
     iotop
+    python3Packages.datalad
   ];
 
   # package already present
