@@ -189,6 +189,7 @@ let
           hl = true;
           fortran = true;
           cxx = true;
+          threadsafe = true; # for cdo
         };
       };
       knem    = { version="1.1.4.90"; extern = "/opt/knem-1.1.4.90mlnx1"; };
@@ -197,6 +198,11 @@ let
       libevent = {
         # for pmix
         version = "2.1.8";
+      };
+      mesa18 = {
+        variants = {
+          llvm = false; #hip-rocclr dependency mesa18: package mesa18@18.3.6+glx+llvm~opengles+osmesa swr=~avx,~avx2,~knl,+none,~skx does not match dependency constraints {"variants":{"llvm":false,"swr":"none"},"version":"18.3:"}
+        };
       };
       mpi = {
         name = "openmpi";
@@ -217,6 +223,9 @@ let
           #pmix = true;
           hwloc = true;
         };
+      };
+      openjpeg = {
+        version = "2.3"; # eccodes dependency openjpeg: package openjpeg@2.4.0~ipo build_type=RelWithDebInfo does not match dependency constraints {"version":"1.5.0:1.5,2.1.0:2.3"}
       };
       openmpi = {
         version = "4.1";
@@ -344,6 +353,12 @@ let
     })
     [
       { name = "openmpi"; }
+      { name = "openmpi";
+        variants.cuda=true;
+        depends = {
+          hwloc.variants.cuda=true;
+        };
+      }
     ];
 
   withPython = packs: py: let
@@ -396,6 +411,7 @@ let
     };
   }).pkgs; [
     boost
+    cdo
     (fftw.withPrefs { version = "2"; variants = { precision = { long_double = false; quad = false; }; }; })
     fftw
     (hdf5.withPrefs { version = "1.8"; })
@@ -424,9 +440,13 @@ let
 
   pkgStruct = {
     pkgs = with corePacks.pkgs; [
+      cloc
       cmake
       cuda
       curl
+      #valgrind # cannot find -lubsan
+      hip
+      (hipfft.withPrefs { depends.rocfft.variants.amdgpu_target= { gfx906=true; gfx908=true; }; })
     ]
     ++
     map (v: {
@@ -487,8 +507,9 @@ let
     #nix
     #pythonPackages.datalad
     #git-annex
-    htop
     git
+    htop
+    iotop
   ];
 
   # package already present
@@ -628,6 +649,7 @@ let
         prerequisites = "direct";
         suffixes = {
           "^mpi" = "mpi";
+          "^cuda" = "cuda";
         };
         filter = {
           environment_blacklist = ["CC" "FC" "CXX" "F77"];
