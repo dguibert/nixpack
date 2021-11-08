@@ -460,21 +460,23 @@ let
         ]);
 
         pythons = mkPythons mpi.packs (py: py // {
-          view = {
-            pkgs = [];
-          };
-          #view = py.packs.pythonView { pkgs = with py.packs.pkgs; [
-          #  #py-mpi4py
-          #  #py-h5py
-          #]; };
-          pkgs = [
-          ];
+          view = py.packs.pythonView { pkgs = with py.packs.pkgs; [
+            py-mpi4py
+            py-h5py
+          ]; };
+          pkgs = lib.optionals (py.isCore && mpi.isCore) (with py.packs.pkgs; [
+          ]);
         });
       });
 
       pythons = mkPythons comp.packs (py: py // {
         view = with py.packs.pkgs; (pyView ([
           python
+          py-dask
+          py-h5py
+          py-matplotlib
+          py-pandas
+          py-virtualenv
         ])).overrideView {
         };
       });
@@ -558,22 +560,22 @@ let
       ++
       builtins.concatMap (mpi: with mpi;
         pkgs
-      #  ++
-      #  builtins.concatMap (py: [{
-      #    pkg = py.view;
-      #    default = py.isCore;
-      #    projection = "python-mpi/{^python.version}";
-      #    #autoload = [comp.pythons[py].view]
-      #    postscript = pyExtensions py.view;
-      #  }] ++ py.pkgs) pythons
+        ++
+        builtins.concatMap (py: [{
+          pkg = py.view;
+          default = py.isCore;
+          projection = "python-mpi/{^python.version}";
+          #autoload = [comp.pythons[py].view]
+          postscript = pyExtensions py.view;
+        }] ++ py.pkgs) pythons
       ) mpis
-      #++
-      #builtins.concatMap (py: with py; [
-      #  { pkg = view;
-      #    default = isCore;
-      #    postscript = pyExtensions view;
-      #  }
-      #]) pythons
+      ++
+      builtins.concatMap (py: with py; [
+        { pkg = view;
+          default = isCore;
+          postscript = pyExtensions view;
+        }
+      ]) pythons
     ) compilers
     #++
     #map (pkg: pkgMod pkg // { projection = "{name}/{version}-libcpp"; })
