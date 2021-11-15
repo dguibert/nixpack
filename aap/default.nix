@@ -224,6 +224,12 @@ let
       openjpeg = {
         version = "2.3"; # eccodes dependency openjpeg: package openjpeg@2.4.0~ipo build_type=RelWithDebInfo does not match dependency constraints {"version":"1.5.0:1.5,2.1.0:2.3"}
       };
+      openblas = {
+        version = "0.3.15";
+        variants = {
+          threads = "pthreads";
+        };
+      };
       openmpi = {
         version = "4.1";
         variants = {
