@@ -163,9 +163,8 @@ let
         version = "2.11";
       }; */
       cpio = rpmExtern "cpio"; # some intel installers need this -- avoid compiler dependency
-      /* specify virtual providers: can be (lists of) package or { name; ...prefs }
-      mpi = [ corePacks.pkgs.openmpi ];
-      java = { name = "openjdk"; version = "10"; }; */
+      /* specify virtual providers: can be (lists of) package or { name; ...prefs } */
+      /* java = { name = "openjdk"; version = "10"; }; */
       /* use gcc 7.x:
       gcc = {
         version = "7";
@@ -204,9 +203,7 @@ let
           llvm = false; #hip-rocclr dependency mesa18: package mesa18@18.3.6+glx+llvm~opengles+osmesa swr=~avx,~avx2,~knl,+none,~skx does not match dependency constraints {"variants":{"llvm":false,"swr":"none"},"version":"18.3:"}
         };
       };
-      mpi = {
-        name = "openmpi";
-      };
+      #mpi = [ corePacks.pkgs.openmpi corePacks.pkgs.intel-mpi ];
       nix = {
         variants = {
           storedir = let v = builtins.getEnv "NIX_STORE_DIR"; in if v == "" then "none" else v;
@@ -251,6 +248,11 @@ let
         };
       };
       openssl = { version="1.1.1g"; extern = "/usr"; };
+      # freetype: has conflicts: %intel freetype-2.8 and above cannot be built with icc (does not support __builtin_shuffle)
+
+      freetype.depends.compiler = bootstrapPacks.pkgs.compiler;
+      rdma-core.depends.compiler = bootstrapPacks.pkgs.compiler;
+      openssh.depends.compiler = bootstrapPacks.pkgs.compiler;
       ucx = {
         variants = {
           thread_multiple = true;
@@ -300,6 +302,7 @@ let
           abi = "6";
         };
       };
+      openssh = rpmExtern "openssh";
       openssl = rpmExtern "openssl" // {
         variants = {
           fips = false;
@@ -309,6 +312,26 @@ let
       pkgconfig = rpmExtern "pkgconfig";
       psm = {};
       zlib = rpmExtern "zlib";
+    };
+  };
+
+  intelPacks = corePacks.withPrefs {
+    label = "intel";
+    package = {
+      compiler = { name = "intel"; };
+      intel = { version="20.0.4"; };
+    };
+  };
+
+  intelOneApiPacks = corePacks.withPrefs {
+    label = "intel-oneapi";
+    package = {
+      compiler = { name = "oneapi"; };
+      #oneapi = [ { name = "intel-oneapi-compilers"; } ];
+      # /dev/shm/nix-build-ucx-1.11.2.drv-0/bguibertd/spack-stage-ucx-1.11.2-p4f833gchjkggkd1jhjn4rh93wwk2xn5/spack-src/src/ucs/datastruct/linear_func.h:147:21: error: comparison with infinity always evaluates to false in fast floating point mode> if (isnan(x) || isinf(x)) {
+      ucx = corePacks.pkgs.ucx // {
+        depends.compiler = bootstrapPacks.pkgs.compiler;
+      };
     };
   };
 
@@ -324,6 +347,7 @@ let
       corePacks.pkgs.compiler
       (corePacks.pkgs.gcc.withPrefs { version = "10.2"; })
       #(corePacks.pkgs.gcc.withPrefs { version = "11"; })
+      intelPacks.pkgs.compiler
     ];
 
   mkMpis = base: gen:
@@ -359,6 +383,7 @@ let
           hwloc.variants.cuda=true;
         };
       }
+      { name = "intel-mpi"; }
     ];
 
   withPython = packs: py: let
@@ -410,7 +435,7 @@ let
       };
     };
   }).pkgs; [
-    boost
+    #boost
     cdo
     (fftw.withPrefs { version = "2"; variants = { precision = { long_double = false; quad = false; }; }; })
     fftw
@@ -447,15 +472,8 @@ let
       #valgrind # cannot find -lubsan
       hip
       (hipfft.withPrefs { depends.rocfft.variants.amdgpu_target= { gfx906=true; gfx908=true; }; })
+      intel-mpi
     ]
-    ++
-    map (v: {
-      pkg = intel-parallel-studio.withPrefs
-        { inherit (v) version; extern = "/opt/intel/compilers_and_libraries_2017.7.259_${v.path}"; };
-      }) [
-        #{ version = "cluster.2017.7"; path = "2017.7.259"; }
-        #{ version = "cluster.2020.4"; path = "2020-4"; }
-      ]
     ;
 
     compilers = mkCompilers corePacks (comp: comp // {
@@ -675,6 +693,8 @@ corePacks // {
   inherit
     mods
     modSite
+    intelPacks
+    intelOneApiPacks
     /*jupyter*/
     ;
 
