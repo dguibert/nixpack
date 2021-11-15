@@ -474,6 +474,37 @@ let
       (hipfft.withPrefs { depends.rocfft.variants.amdgpu_target= { gfx906=true; gfx908=true; }; })
       intel-mpi
     ]
+    ++
+    map (v: {
+      pkg = intel.withPrefs
+        { inherit (v) version; extern = "/opt/intel/compilers_and_libraries_${v.path}"; };
+      }) [
+        # error: intel-parallel-studio: has conflicts: +mpi
+        # conflicts('+mpi',       when='@professional.0:professional')
+        #{ version = "cluster.2017.7"; path = "2017.7.259"; }
+        #{ version = "cluster.2020.4"; path = "2020-4"; }
+        #{ version="cluster.2016.4.258"; path="2016.4.258"; }
+        #{ version="cluster.2017.7.259"; path="2017.7.259"; }
+        #{ version="cluster.2017.8.262"; path="2017.8.262"; }
+        #{ version="cluster.2018.0.128"; path="2018.0.128"; }
+        #{ version="cluster.2018.1.163"; path="2018.1.163"; }
+        #{ version="cluster.2018.2.199"; path="2018.2.199"; }
+        #{ version="cluster.2018.3.222"; path="2018.3.222"; }
+        #{ version="cluster.2018.5.274"; path="2018.5.274"; }
+        #{ version="cluster.2019.1.144"; path="2019.1.144"; }
+        #{ version="cluster.2019.2.187"; path="2019.2.187"; }
+        #{ version="cluster.2019.3.199"; path="2019.3.199"; }
+        #{ version="cluster.2019.4.243"; path="2019.4.243"; }
+        #{ version="cluster.2019.5.281"; path="2019.5.281"; }
+        #{ version="cluster.2019.6"; path="2019.6.324"; }
+        #{ version="cluster.2020.0.166"; path="2020.0.166"; }
+        #{ version="cluster.2020.1.217"; path="2020.1.217"; }
+        #{ version="cluster.2020.2.254"; path="2020.2.254"; }
+        #{ version="cluster.2020.4.304"; path="2020.4.304"; }
+        #{ version="cluster.2020.4.317"; path="2020.4.317"; }
+        #{ version="cluster.2020.4.319"; path="2020.4.319"; }
+        { version="19.1.3"; path="2020.4.304"; }
+      ]
     ;
 
     compilers = mkCompilers corePacks (comp: comp // {
