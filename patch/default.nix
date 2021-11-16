@@ -15,6 +15,20 @@ in
   compiler = ["gcc" "llvm" "oneapi" "intel" "aocc" ];
 
   /* add compiler paths, providers */
+  aocc = spec: old: {
+    depends = old.depends or {} // { compiler = null; };
+    paths = {
+      # gcc bin detection is non-deterministic
+      cc  = "bin/clang";
+      cxx = "bin/clang++";
+      f77 = "bin/flang";
+      fc  = "bin/flang";
+    };
+    provides = old.provides or {} // {
+      compiler = ":";
+    };
+  };
+
   gcc = spec: old: {
     provides = old.provides or {} // {
       compiler = ":";
@@ -136,7 +150,6 @@ in
   };
 
   /* some things don't use a compiler */
-  aocc = nocompiler;
   intel-mkl = nocompiler;
   intel-mpi = nocompiler;
   intel-oneapi-mkl = nocompiler;
