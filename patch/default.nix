@@ -12,7 +12,7 @@ let
 in
 {
   /* compiler pseudo-virtual */
-  compiler = ["gcc" "llvm" "oneapi" "intel" ];
+  compiler = ["gcc" "llvm" "oneapi" "intel" "aocc" ];
 
   /* add compiler paths, providers */
   gcc = spec: old: {
@@ -136,6 +136,7 @@ in
   };
 
   /* some things don't use a compiler */
+  aocc = nocompiler;
   intel-mkl = nocompiler;
   intel-mpi = nocompiler;
   intel-oneapi-mkl = nocompiler;

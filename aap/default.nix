@@ -157,11 +157,18 @@ let
       /* compiler is an implicit virtual dependency for every package */
       compiler = bootstrapPacks.pkgs.compiler;
       /* preferences for individual packages or virtuals */
-      /* get cpio from system:
-      cpio = {
-        extern = "/usr";
-        version = "2.11";
-      }; */
+      /* get cpio from system: */
+      aocc = {
+        variants = {
+          license-agreed = true;
+        };
+      };
+      binutils = {
+        variants = {
+          gold = true;
+          ld = true;
+        };
+      };
       cpio = rpmExtern "cpio"; # some intel installers need this -- avoid compiler dependency
       /* specify virtual providers: can be (lists of) package or { name; ...prefs } */
       /* java = { name = "openjdk"; version = "10"; }; */
@@ -256,9 +263,22 @@ let
       openssl = { version="1.1.1g"; extern = "/usr"; };
       # freetype: has conflicts: %intel freetype-2.8 and above cannot be built with icc (does not support __builtin_shuffle)
 
+      # for aocc, infinite recursion breaking
+      berkeley-db.depends.compiler = bootstrapPacks.pkgs.compiler;
+      bzip2.depends.compiler = bootstrapPacks.pkgs.compiler;
       freetype.depends.compiler = bootstrapPacks.pkgs.compiler;
-      rdma-core.depends.compiler = bootstrapPacks.pkgs.compiler;
+      gdbm.depends.compiler = bootstrapPacks.pkgs.compiler;
+      libiconv.depends.compiler = bootstrapPacks.pkgs.compiler;
+      libtool.depends.compiler = bootstrapPacks.pkgs.compiler;
+      libxml2.depends.compiler = bootstrapPacks.pkgs.compiler;
+      ncurses.depends.compiler = bootstrapPacks.pkgs.compiler;
       openssh.depends.compiler = bootstrapPacks.pkgs.compiler;
+      perl.depends.compiler = bootstrapPacks.pkgs.compiler;
+      rdma-core.depends.compiler = bootstrapPacks.pkgs.compiler;
+      readline.depends.compiler = bootstrapPacks.pkgs.compiler;
+      texinfo.depends.compiler = bootstrapPacks.pkgs.compiler;
+      xz.depends.compiler = bootstrapPacks.pkgs.compiler;
+      zlib.depends.compiler = bootstrapPacks.pkgs.compiler;
       ucx = {
         variants = {
           thread_multiple = true;
@@ -318,6 +338,13 @@ let
       pkgconfig = rpmExtern "pkgconfig";
       psm = {};
       zlib = rpmExtern "zlib";
+    };
+  };
+
+  aoccPacks = corePacks.withPrefs {
+    label = "aocc";
+    package = {
+      compiler = { name = "aocc"; };
     };
   };
 
@@ -479,6 +506,9 @@ let
       hip
       (hipfft.withPrefs { depends.rocfft.variants.amdgpu_target= { gfx906=true; gfx908=true; }; })
       intel-mpi
+
+      aoccPacks.pkgs.aocc
+      aoccPacks.pkgs.openmpi
     ]
     ++
     map (v: {
@@ -730,6 +760,7 @@ corePacks // {
   inherit
     mods
     modSite
+    aoccPacks
     intelPacks
     intelOneApiPacks
     /*jupyter*/
