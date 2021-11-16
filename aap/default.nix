@@ -220,9 +220,7 @@ let
       };
       shadow = rpmExtern "shadow-utils";
       /* use an external slurm: */
-      slurm = {
-        extern = "/usr";
-        version = "19.05.8";
+      slurm = rpmExtern "slurm" // {
         variants = {
           #pmix = true;
           hwloc = true;
@@ -260,25 +258,19 @@ let
           legacylaunchers = true;
         };
       };
-      openssl = { version="1.1.1g"; extern = "/usr"; };
       # freetype: has conflicts: %intel freetype-2.8 and above cannot be built with icc (does not support __builtin_shuffle)
 
       # for aocc, infinite recursion breaking
       berkeley-db.depends.compiler = bootstrapPacks.pkgs.compiler;
-      bzip2.depends.compiler = bootstrapPacks.pkgs.compiler;
       freetype.depends.compiler = bootstrapPacks.pkgs.compiler;
       gdbm.depends.compiler = bootstrapPacks.pkgs.compiler;
       libiconv.depends.compiler = bootstrapPacks.pkgs.compiler;
-      libtool.depends.compiler = bootstrapPacks.pkgs.compiler;
       libxml2.depends.compiler = bootstrapPacks.pkgs.compiler;
       ncurses.depends.compiler = bootstrapPacks.pkgs.compiler;
-      openssh.depends.compiler = bootstrapPacks.pkgs.compiler;
-      perl.depends.compiler = bootstrapPacks.pkgs.compiler;
       rdma-core.depends.compiler = bootstrapPacks.pkgs.compiler;
       readline.depends.compiler = bootstrapPacks.pkgs.compiler;
       texinfo.depends.compiler = bootstrapPacks.pkgs.compiler;
       xz.depends.compiler = bootstrapPacks.pkgs.compiler;
-      zlib.depends.compiler = bootstrapPacks.pkgs.compiler;
       ucx = {
         variants = {
           thread_multiple = true;
@@ -291,6 +283,22 @@ let
           knem = true;
         };
       };
+
+      autoconf = rpmExtern "autoconf";
+      automake = rpmExtern "automake";
+      bzip2 = rpmExtern "bzip2";
+      diffutils = rpmExtern "diffutils";
+      libtool = rpmExtern "libtool";
+      m4 = rpmExtern "m4";
+      openssh = rpmExtern "openssh";
+      openssl = rpmExtern "openssl" // {
+        variants = {
+          fips = false;
+        };
+      };
+      pkgconfig = rpmExtern "pkgconf";
+      perl = rpmExtern "perl";
+      zlib = rpmExtern "zlib";
 
       #berkeley-db = {
       #  extern = nixpkgs.db;
@@ -316,28 +324,13 @@ let
         name = "gcc";
       } // rpmExtern "gcc";
 
-      autoconf = rpmExtern "autoconf";
-      automake = rpmExtern "automake";
-      bzip2 = rpmExtern "bzip2";
-      diffutils = rpmExtern "diffutils";
-      libtool = rpmExtern "libtool";
-      m4 = rpmExtern "m4";
       ncurses = rpmExtern "ncurses" // {
         variants = {
-          termlib = true;
-          abi = "6";
+	  termlib = false;
+          abi = "5";
         };
       };
-      openssh = rpmExtern "openssh";
-      openssl = rpmExtern "openssl" // {
-        variants = {
-          fips = false;
-        };
-      };
-      perl = rpmExtern "perl";
-      pkgconfig = rpmExtern "pkgconfig";
-      psm = {};
-      zlib = rpmExtern "zlib";
+
     };
   };
 
