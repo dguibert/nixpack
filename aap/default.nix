@@ -37,27 +37,10 @@ let
        metadata to get out of sync, and is not recommended for production.
        See also repos and repoPatch below for other ways of updating packages
        without modifying the spack repo.  */
-    #spackSrc = {
-    #  /* default:
-    #  url = "git://github.com/spack/spack"; */
-    #  url = "http://github.com/spack/spack";
-    #  ref = "develop";
-    #  #rev = "b4c6c11e689b2292a1411e4fc60dcd49c929246d";
-    #};
-    #spackSrc = {
-    #  url = "/home_nfs/bguibertd/software-cepp-spack/spack";
-    #  ref = "develop";
-    #};
-    #spackSrc = {
-    #  url = "https://github.com/flatironinstitute/spack";
-    #  ref = "fi-nixpack";
-    ##  rev = "9526a13086fbc1790814edb84cdd9b65dbfc8f90";
-    ##  #ref = "develop";
-    #};
     spackSrc = {
-      url = "https://github.com/flatironinstitute/spack";
-      ref = "fi-nixpack";
-      rev = "2311242d266d90726222002a262b50a165adb6bf";
+      url = "https://castle.frec.bull.fr:24443/bguibertd/spack.git";
+      ref = "develop";
+      rev = "635b4b4ffedb7c635c63975802955f6ace8b8b7d";
     };
 
 
@@ -100,9 +83,8 @@ let
         build = {
           setup = ''
             configure_args = pkg.configure_args()
-            configure_args.append('CPPFLAGS=-I/usr/include/infiniband')
             if spec.satisfies("~pmix"):
-              configure_args.remove('--without-pmix')
+              if '--without-mpix' in configure_args: configure_args.remove('--without-pmix')
             pkg.configure_args = lambda: configure_args
           '';
         };
