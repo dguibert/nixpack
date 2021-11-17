@@ -17,72 +17,106 @@ case "`hostname -s`" in
 esac
 
 traceSpecs() {
-  nix-instantiate --eval -A "$1" $nixfile |& sed 's/^trace: //'
+	nix-instantiate --eval -A "$1" $nixfile |& sed 's/^trace: //'
 }
 
 if [[ $# -eq 0 ]] ; then
-  cmd=help
+	cmd=help
 else
-  cmd="$1"
-  shift
+	cmd="$1"
+	shift
 fi
 case "$cmd" in
-  (build)
-    exec nix-build --show-trace "$@" -A modSite $nixfile
-    ;;
-  (spec)
-    if [[ $# -eq 0 ]] ; then
-      traceSpecs traceModSpecs
-    else
-      for p in "$@" ; do
-        traceSpecs "traceSpecs.$p"
-      done
-    fi
-    ;;
-  (gc)
-    exec nix-store --gc
-    ;;
-  (release)
-    if ! git diff-index --quiet HEAD -- ; then
-      echo "Local modifications: refusing to release"
-      exit 1
-    fi
-    prof=$1
-    case "$prof" in
-      (nix)
-        attrs="nixpkgs.nix nixpkgs.git"
-        ;;
-      (modules|nixpack|"")
-        prof=nixpack
-        #nix-build -o singularity -A pkgs.singularity $nixfile
-        #for fix in singularity/bin/spack_perms_fix.sh ; do
-        #  sudo $fix || echo "YOU MUST RUN: sudo `realpath $fix`"
-        #done
-        #attrs="mods modCache lmodSite" # lmodSite not implemented yet
-        attrs="modSite"
-        ;;
-      (jupyter)
-        prof=nixpack-$prof
-        attrs="jupyter"
-        ;;
-      (*)
-        echo "Unknown release"
-        exit 1
-        ;;
-    esac
-    profile=$NIX_STATE_DIR/profiles/system/$prof
-    nix-env -p $profile -i -r -f $nixfile -A $attrs
-    l=$(readlink $profile)
-    git tag $site/${l%-link} HEAD
-    ;;
-  (spack)
-    nix-build -o spackBin -A spackBin $nixfile
-    exec ./spackBin "$@"
-    ;;
-  (*)
-    if [[ $cmd != help ]] ; then
-      echo "Unknown command"
-    fi
+	(build)
+		exec nix-build --show-trace "$@" -A modSite $nixfile
+		;;
+	(spec)
+		if [[ $# -eq 0 ]] ; then
+			traceSpecs traceModSpecs
+		else
+			for p in "$@" ; do
+				traceSpecs "traceSpecs.$p"
+			done
+		fi
+		;;
+	(gc)
+		exec nix-store --gc
+		;;
+	(release)
+		if ! git diff-index --quiet HEAD -- ; then
+			echo "Local modifications: refusing to release"
+			exit 1
+		fi
+		if [[ $# -eq 0 ]] ; then
+			set -- modules
+		elif [[ $* == all ]] ; then
+			set -- nix lmod modules jupyter
+		fi
+		for prof in "$@" ; do
+			case "$prof" in
+				(nix)
+					attrs="nixpkgs.nix nixpkgs.git"
+					;;
+				(lmod)
+					attrs="pkgs.lmod"
+					;;
+				(modules|nixpack)
+					prof=nixpack
+					#nix-build -o singularity -A pkgs.singularity $nixfile
+					#for fix in singularity/bin/spack_perms_fix.sh ; do
+					#	sudo $fix || echo "YOU MUST RUN: sudo `realpath $fix`"
+					#done
+					attrs="modSite"
+					;;
+				(test-modules|test)
+					prof=nixpack-test
+					attrs="modSite"
+					;;
+				(jupyter)
+					prof=nixpack-$prof
+					attrs="jupyter"
+					;;
+				(*)
+					echo "Unknown release"
+					exit 1
+					;;
+			esac
+			profile=$NIX_STATE_DIR/profiles/system/$prof
+			nix-env -p $profile -i -r -f $nixfile -A $attrs
+			l=$(readlink $profile)
+			git tag $site/${l%-link} HEAD
+		done
+		;& # fall-thru
+	(modules)
+		base=${lmod_base}
+		for p in $NIX_STATE_DIR/profiles/system/nixpack-[0-9]*-link ; do
+			t=$(stat -c %Z $p/)
+			b=${p#*/nixpack-}
+			b=${b%-link}
+			f=$base/modules/modules/1.$b-$(date -d @$t +%Y%m%d).lua
+			if [[ -e $f ]] ; then
+				continue
+			elif [[ -h $p/modules.lua && `realpath $p/modules.lua` = $NIX_STORE_DIR/*-modules.lua ]] ; then
+				echo "Linking $f"
+				ln -sf `realpath $p/modules.lua` $f
+			else
+				echo "Creating $f"
+				# generate one based on our template
+				mods=$(realpath $p/linux-rhel8-x86_64)
+				date=$(date -d @$t)
+				sed "s:@MODS@:$mods:g;s!@DATE@!$date!g" $current_dir/lmod/modules.lua > $f
+			fi
+		done
+		$base/lmod/lmod/libexec/update_lmod_system_cache_files -d $base/cacheDir -t $base/cacheTS.txt $base/modules:$(realpath $base/lmod/lmod/modulefiles/Core)
+		;;
+	(spack)
+		nix-build -o spackBin -A spackBin $nixfile
+		exec ./spackBin "$@"
+		;;
+	(*)
+		if [[ $cmd != help ]] ; then
+			echo "Unknown command"
+		fi
 
     cat <<EOF
 Usage: $0 COMMAND
@@ -92,14 +126,18 @@ Commands:
   build        Build modules into result.  Takes the same arguments as
                nix-build (-jN, --cores M, -K, ...).
   spec [PKG]   Print the spec tree for a specific package or all modules,
-         along with the total number of unique packages.
+	       along with the total number of unique packages.
   gc           Cleanup any unreferenced nix stores (nix-store --gc).
   release      Publish a release profile for...
     modules    nixpack lmod modules (default)
+    test       nixpack lmod modules to nixpack-test
     jupyter    jupyterhub server environment
     nix        nix build environment
+    lmod       lua modules environment
+    all        all of the above
+  modules      Update meta-modules in /cm/shared/sw/lmod from releases
   spack ...    Run a spack command in the nixpack environment (things like list
-         and info work, but those managing packages will not)
+	       and info work, but those managing packages will not)
 
 EOF
 esac

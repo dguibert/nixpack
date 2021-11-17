@@ -1,4 +1,5 @@
 # setup FI environment
+lmod_base=/home_nfs/bguibertd/lmod
 nix=/home_nfs/bguibertd/nix
 
 #export NIX_REMOTE=daemon
