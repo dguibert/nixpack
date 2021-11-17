@@ -522,6 +522,7 @@ let
     compilers = mkCompilers corePacks (comp: comp // {
       pkgs = with comp.packs.pkgs; [
         (comp.defaulting compiler)
+        metis
       ] ++
       optMpiPkgs false comp.packs;
 
@@ -533,6 +534,7 @@ let
         )
         ++ [
           osu-micro-benchmarks
+          parmetis
         ] ++
         optMpiPkgs true mpi.packs
         ++
