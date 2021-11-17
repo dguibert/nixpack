@@ -298,7 +298,8 @@ let
       };
       pkgconfig = rpmExtern "pkgconf";
       perl = rpmExtern "perl";
-      zlib = rpmExtern "zlib";
+      #zlib = rpmExtern "zlib"; # hdf5 don't find it
+      zlib.depends.compiler = bootstrapPacks.pkgs.compiler;
 
       #berkeley-db = {
       #  extern = nixpkgs.db;
