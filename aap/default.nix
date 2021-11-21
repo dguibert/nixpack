@@ -675,8 +675,9 @@ let
       prefix_inspections = {
         "lib" = ["LIBRARY_PATH"];
         "lib64" = ["LIBRARY_PATH"];
+        "lib/intel64" = ["LIBRARY_PATH"]; # for intel
         "include" = ["C_INCLUDE_PATH" "CPLUS_INCLUDE_PATH"];
-        "" = ["{name}_ROOT" "{name}_BASE"];
+        "" = ["{name}_ROOT"];
       };
       all = {
         autoload = "none";
