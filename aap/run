@@ -50,7 +50,7 @@ case "$cmd" in
 		if [[ $# -eq 0 ]] ; then
 			set -- modules
 		elif [[ $* == all ]] ; then
-			set -- nix lmod modules jupyter
+			set -- nix lmod modules #jupyter
 		fi
 		for prof in "$@" ; do
 			case "$prof" in

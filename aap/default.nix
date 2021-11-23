@@ -58,7 +58,7 @@ let
        etc.  These can be string paths to the system or to packages/environments
        from nixpkgs or similar, but regardless need to be external to nixpacks. */
     spackPython = "/usr/bin/python3";
-    spackPath = "/bin:/usr/bin";
+    spackPath = "/bin:/usr/bin:/usr/sbin";
 
     /* packs can optionally include nixpkgs for additional packages or bootstrapping.
        omit to disable. */
@@ -263,6 +263,7 @@ let
           mlx5-dv = true;
           ib-hw-tm = true;
           knem = true;
+          rocm = true;
         };
       };
 
@@ -390,6 +391,11 @@ let
         variants.cuda=true;
         depends = {
           hwloc.variants.cuda=true;
+          ucx.variants = {
+            cuda=true;
+            gdrcopy=true;
+            rocm=false;
+          };
         };
       }
       { name = "intel-mpi"; }
