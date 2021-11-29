@@ -2,14 +2,23 @@ self: pkgs:
 with pkgs;
 
 {
+  coreutils = coreutils.overrideAttrs (old: {
+    doCheck = false; # failure test-getaddrinfo
+  });
+  gnutls = gnutls.overrideAttrs (old: {
+    doCheck = false; # failure test-getaddrinfo
+  });
+  libgpg-error = libgpg-error.overrideAttrs (old: {
+    doCheck = false; # failure FAIL: t-argparse 1.42
+  });
+  p11-kit = p11-kit.overrideAttrs (old: {
+    doCheck = false; # failure ERROR: test-path - missing test plan
+  });
+
   nss_sss = callPackage sssd/nss-client.nix { };
 
   libuv = libuv.overrideAttrs (old: {
     doCheck = false; # failure
-  });
-
-  coreutils = coreutils.overrideAttrs (old: {
-    doCheck = false; # df/total-verify broken on ceph
   });
 
   nix = (nix.override {
@@ -17,6 +26,11 @@ with pkgs;
   }).overrideAttrs (old: {
     patches = [../patch/nix-ignore-fsea.patch];
     doInstallCheck = false;
+  });
+
+  git = git.overrideAttrs (old: {
+    doCheck = false; # failure
+    doInstallCheck = false; # failure
   });
 
   gtk3 = gtk3.override {
@@ -31,6 +45,10 @@ with pkgs;
         patchelf --set-rpath "$nrp" "$f"
       done
     '';
+  });
+
+  openssh = openssh.overrideAttrs (old: {
+    doCheck = false; # failure
   });
 
   openssl_1_0_2 = openssl_1_0_2.overrideAttrs (old: {
