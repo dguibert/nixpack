@@ -61,6 +61,7 @@ prefsUpdate = let
       spackConfig = lib.recursiveUpdate;
       spackPython = scalar;
       spackPath = scalar;
+      spackEnv = lib.recursiveUpdate;
       nixpkgsSrc = scalar;
       nixpkgs = scalar;
       verbose = scalar;
@@ -81,6 +82,7 @@ packsWithPrefs =
   , spackConfig ? {}
   , spackPython ? "/usr/bin/python3"
   , spackPath ? "/bin:/usr/bin"
+  , spackEnv ? { PATH=spackPath; }
   , nixpkgsSrc ? null
   , nixpkgs ? fetchGit ({
       url = "git://github.com/NixOS/nixpkgs";
@@ -102,25 +104,23 @@ lib.fix (packs: with packs; {
     ({ label = "withPrefs"; } // p));
 
 
-  makeSpackConfig = import ../spack/config.nix packs spackPath;
+  makeSpackConfig = import ../spack/config.nix packs spackEnv;
 
-  inherit spack spackPython spackPath;
+  inherit spack spackPython spackEnv;
   spackConfig = makeSpackConfig (lib.recursiveUpdate defaultSpackConfig packPrefs.spackConfig);
 
-  spackNixLib = derivation {
+  spackNixLib = derivation ({
     name = "nix-spack-py";
     inherit system;
     builder = ../spack/install.sh;
     src = ../spack/nixpack.py;
-    PATH = spackPath;
-  };
+  } // spackEnv);
 
   /* common attributes for running spack */
   spackBuilder = attrs: builtins.removeAttrs (derivation ({
     inherit (packs) system os spackConfig;
     builder = spackPython;
     PYTHONPATH = "${spackNixLib}:${spack}/lib/spack:${spack}/lib/spack/external";
-    PATH = spackPath;
     LC_ALL = "en_US.UTF-8"; # work around spack bugs processing log files
     repos = if attrs ? withRepos
       then if attrs.withRepos
@@ -128,7 +128,7 @@ lib.fix (packs: with packs; {
         else null
       else map (r: r + "/repo.yaml") repos;
     spackCache = if attrs.withRepos or false then spackCacheRepos else spackCache;
-  } // attrs)) ["PYTHONPATH" "PATH" "LC_ALL" "spackConfig" "spackCache" "passAsFile"];
+  } // spackEnv // attrs)) ["PYTHONPATH" "PATH" "LC_ALL" "spackConfig" "spackCache" "passAsFile"];
 
   /* pre-generated spack repo index cache (both with and without overlay repos) */
   makeSpackCache = withRepos: lib.when (builtins.isAttrs spackSrc)

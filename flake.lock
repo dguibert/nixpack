@@ -1,0 +1,45 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1636225307,
+        "narHash": "sha256-9h+5H44KIplCAJ26JLa5lC68vKC9pjTzq1c8IlWn/tI=",
+        "owner": "dguibert",
+        "repo": "nixpkgs",
+        "rev": "ecd445b9d09c4740409bc204d2f98d88b9c884cd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dguibert",
+        "ref": "pu-nixpack",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "spack": "spack"
+      }
+    },
+    "spack": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1636689990,
+        "narHash": "sha256-Gl63hr4Tgwu3FSsy2eW4hOgpaEspiEXUy7VGlN96guw=",
+        "owner": "flatironinstitute",
+        "repo": "spack",
+        "rev": "1e32391fb75401d47206d0100eb444e3804c185a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "flatironinstitute",
+        "ref": "fi-nixpack",
+        "repo": "spack",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
