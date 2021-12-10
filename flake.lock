@@ -2,11 +2,11 @@
   "nodes": {
     "nixpkgs": {
       "locked": {
-        "lastModified": 1636225307,
-        "narHash": "sha256-9h+5H44KIplCAJ26JLa5lC68vKC9pjTzq1c8IlWn/tI=",
+        "lastModified": 1638482949,
+        "narHash": "sha256-OsOZJMMBatA3zoAV4eirVeQfGob9PjCcn3xLZOLy44w=",
         "owner": "dguibert",
         "repo": "nixpkgs",
-        "rev": "ecd445b9d09c4740409bc204d2f98d88b9c884cd",
+        "rev": "48cf3f2ba01fb38dbfdefed45b3b585b2b884297",
         "type": "github"
       },
       "original": {
@@ -25,11 +25,11 @@
     "spack": {
       "flake": false,
       "locked": {
-        "lastModified": 1636689990,
-        "narHash": "sha256-Gl63hr4Tgwu3FSsy2eW4hOgpaEspiEXUy7VGlN96guw=",
+        "lastModified": 1639087258,
+        "narHash": "sha256-6oJnwZSlBww8vSu8iDL/6f65cAvoPKvDi5CqMfhGvO0=",
         "owner": "flatironinstitute",
         "repo": "spack",
-        "rev": "1e32391fb75401d47206d0100eb444e3804c185a",
+        "rev": "efd6f56775d2895c222348825c23015e2acecac8",
         "type": "github"
       },
       "original": {
