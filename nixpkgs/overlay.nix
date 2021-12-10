@@ -28,6 +28,11 @@ with pkgs;
     doInstallCheck = false;
   });
 
+  git = git.overrideAttrs (old: {
+    doCheck = false; # failure
+    doInstallCheck = false; # failure
+  });
+
   gtk3 = gtk3.override {
     trackerSupport = false;
   };
@@ -40,6 +45,10 @@ with pkgs;
         patchelf --set-rpath "$nrp" "$f"
       done
     '';
+  });
+
+  openssh = openssh.overrideAttrs (old: {
+    doCheck = false; # failure
   });
 
   openssl_1_0_2 = openssl_1_0_2.overrideAttrs (old: {

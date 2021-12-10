@@ -1,19 +1,16 @@
 { system ? builtins.currentSystem
 , target ? builtins.head (builtins.split "-" system)
-, src ? {}
+, nixpkgs
 }:
 
 let
-
-nixpkgs = fetchGit ({
-  url = "git://github.com/NixOS/nixpkgs";
-  ref = "master";
-} // src);
+# gcc arch is x64-64
+target_ = builtins.replaceStrings ["x86_64"] ["x86-64"] target;
 
 args = {
   localSystem = {
     inherit system;
-    gcc = { arch = target; };
+    gcc = { arch = target_; };
   };
   config = {
     replaceStdenv = import ./stdenv.nix;

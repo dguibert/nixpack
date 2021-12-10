@@ -1,0 +1,44 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1639640031,
+        "narHash": "sha256-S9tu0Q1LG3CKLhOrdyWrlFbzBVkf/lljcQreVmHJnwU=",
+        "owner": "dguibert",
+        "repo": "nixpkgs",
+        "rev": "6a9f90e02e6f8edad37bd34b65888bb11473adfa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dguibert",
+        "ref": "pu-nixpack",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "spack": "spack"
+      }
+    },
+    "spack": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1642713003,
+        "narHash": "sha256-kB5JRJV2LzcelhH/NC85zcr22tyJek9QZyabdcifhz0=",
+        "owner": "spack",
+        "repo": "spack",
+        "rev": "5719b40ded2249616cc513d2fcc5d2aa99f9b760",
+        "type": "github"
+      },
+      "original": {
+        "owner": "spack",
+        "repo": "spack",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

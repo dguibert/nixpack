@@ -58,10 +58,12 @@ prefsUpdate = let
       os = scalar;
       label = a: b: "${a}.${b}";
       spackSrc = scalar;
+      spack = scalar;
       spackConfig = lib.recursiveUpdate;
       spackPython = scalar;
       spackEnv = a: b: a // b;
       nixpkgsSrc = scalar;
+      nixpkgs = scalar;
       verbose = scalar;
       repoPatch = a: b: a // b;
       global = lib.prefsUpdate;
@@ -70,17 +72,23 @@ prefsUpdate = let
   in
   lib.mergeWithKeys (k: updaters.${k});
 
-packsWithPrefs = 
+packsWithPrefs =
   { system ? builtins.currentSystem
   , os ? "unknown"
   , label ? "packs"
   , spackSrc ? {}
+  , spack ? if builtins.isString spackSrc then spackSrc else
+    builtins.fetchGit ({ name = "spack"; url = "git://github.com/spack/spack"; } // spackSrc)
   , spackConfig ? {}
   , spackPython ? "/usr/bin/python3"
   , spackEnv ? {
       PATH = "/bin:/usr/bin";
     }
   , nixpkgsSrc ? null
+  , nixpkgs ? fetchGit ({
+      url = "git://github.com/NixOS/nixpkgs";
+      ref = "master";
+    } // nixpkgsSrc)
   , repos ? [ ../spack/repo ]
   , repoPatch ? {}
   , global ? {}
@@ -96,12 +104,9 @@ lib.fix (packs: with packs; {
   withPrefs = p: packsWithPrefs (prefsUpdate packPrefs
     ({ label = "withPrefs"; } // p));
 
-  spack = if builtins.isString spackSrc then spackSrc else
-    builtins.fetchGit ({ name = "spack"; url = "git://github.com/spack/spack"; } // spackSrc);
-
   makeSpackConfig = import ../spack/config.nix packs;
 
-  inherit spackPython spackEnv;
+  inherit spack spackPython spackEnv;
   spackConfig = makeSpackConfig (lib.recursiveUpdate defaultSpackConfig packPrefs.spackConfig);
 
   spackNixLib = derivation (spackEnv // {
@@ -397,11 +402,11 @@ lib.fix (packs: with packs; {
   /* a runnable (if only partly functional) spack binary */
   spackBin = import ../spack/bin.nix packs;
 
-  nixpkgs = lib.when (nixpkgsSrc != null)
+  nixpkgs = lib.when (nixpkgs != null)
     (import ../nixpkgs {
       inherit system;
       target = global.target or target;
-      src = nixpkgsSrc;
+      inherit nixpkgs;
     });
 });
 
