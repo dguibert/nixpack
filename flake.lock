@@ -25,18 +25,17 @@
     "spack": {
       "flake": false,
       "locked": {
-        "lastModified": 1639087258,
-        "narHash": "sha256-6oJnwZSlBww8vSu8iDL/6f65cAvoPKvDi5CqMfhGvO0=",
-        "owner": "flatironinstitute",
-        "repo": "spack",
-        "rev": "efd6f56775d2895c222348825c23015e2acecac8",
-        "type": "github"
+        "lastModified": 1639213113,
+        "narHash": "sha256-9xiGuPAHiihJ6evukOKVv66KOBgfvEqZcfRiqVg1T30=",
+        "ref": "develop",
+        "rev": "e4606f5703fbb800bdfd7c458caffc6360332a81",
+        "revCount": 22584,
+        "type": "git",
+        "url": "file:///home_nfs/bguibertd/software-cepp-spack/spack"
       },
       "original": {
-        "owner": "flatironinstitute",
-        "ref": "fi-nixpack",
-        "repo": "spack",
-        "type": "github"
+        "type": "git",
+        "url": "file:///home_nfs/bguibertd/software-cepp-spack/spack"
       }
     }
   },
