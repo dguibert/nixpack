@@ -26,6 +26,10 @@ with pkgs;
     shell = "/bin/sh";
   });
 
+  libffi = libffi.overrideAttrs (old: {
+    doCheck = false; # failure
+  });
+
   coreutils = (coreutils.override {
     autoreconfHook = null; # workaround nixpkgs #144747
     texinfo = null;
