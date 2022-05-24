@@ -279,7 +279,7 @@ rec {
 
   capture = args: env: readFile (derivation ({
     name = "capture-${baseNameOf (head args)}";
-    system = currentSystem;
+    system = builtins.currentSystem or "x86_64-linux";
     builder = ./capture.sh;
     args = args;
   } // env));
