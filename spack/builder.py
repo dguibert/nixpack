@@ -51,6 +51,7 @@ if setup:
     exec(setup)
 
 origenv = os.environ.copy()
+spack.main.set_working_dir()
 # create and stash some metadata
 spack.build_environment.setup_package(pkg, True, context='build')
 os.makedirs(pkg.metadata_dir, exist_ok=True)
