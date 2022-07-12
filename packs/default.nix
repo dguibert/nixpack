@@ -60,6 +60,7 @@ prefsUpdate = let
       spackSrc = scalar;
       spackConfig = lib.recursiveUpdate;
       spackPython = scalar;
+      spackShell = scalar;
       spackEnv = a: b: a // b;
       nixpkgsSrc = scalar;
       verbose = scalar;
@@ -72,13 +73,14 @@ prefsUpdate = let
 
 spackTarget = builtins.replaceStrings ["-"] ["_"];
 
-packsWithPrefs = 
+packsWithPrefs =
   { system ? builtins.currentSystem
   , os ? "unknown"
   , label ? "packs"
   , spackSrc ? {}
   , spackConfig ? {}
   , spackPython ? "/usr/bin/python3"
+  , spackShell ? "/bin/bash"
   , spackEnv ? {
       PATH = "/bin:/usr/bin";
     }
@@ -104,7 +106,7 @@ lib.fix (packs: with packs; {
 
   makeSpackConfig = import ../spack/config.nix packs;
 
-  inherit spackPython spackEnv;
+  inherit spackPython spackShell spackEnv;
   spackConfig = makeSpackConfig (lib.recursiveUpdate defaultSpackConfig packPrefs.spackConfig);
 
   spackNixLib = derivation (spackEnv // {
@@ -117,7 +119,7 @@ lib.fix (packs: with packs; {
   /* common attributes for running spack */
   spackBuilder = attrs: builtins.removeAttrs (derivation (spackEnv // {
     inherit (packs) system os spackConfig;
-    builder = spackPython;
+    builder = spackShell;
     PYTHONPATH = "${spackNixLib}:${spack}/lib/spack:${spack}/lib/spack/external";
     LC_ALL = "en_US.UTF-8"; # work around spack bugs processing log files
     repos = if attrs ? withRepos
@@ -132,7 +134,8 @@ lib.fix (packs: with packs; {
   makeSpackCache = withRepos: lib.when (builtins.isAttrs spackSrc)
     (spackBuilder ({
       name = "spack-cache" + (if withRepos then "-repos" else "");
-      args = [../spack/cache.py];
+      args = ["-xc" "$spackPhase" ];
+      spackPhase = ''${spackPython} ${../spack/cache.py}'';
       spackCache = null;
       inherit withRepos;
     }));
@@ -293,7 +296,8 @@ lib.fix (packs: with packs; {
           /* externs don't provide withPrefs */
         }
         else spackBuilder ({
-          args = [../spack/builder.py];
+          args = ["-xc" "$spackPhase" ];
+          spackPhase = ''${spackPython} ${../spack/builder.py}'';
           inherit name;
           verbose = pprefs.verbose or false;
           spec = builtins.toJSON spec;
@@ -362,7 +366,8 @@ lib.fix (packs: with packs; {
   /* generate nix package metadata from spack repos */
   spackRepo = spackBuilder {
     name = "spack-repo.nix";
-    args = [../spack/generate.py];
+    args = ["-xc" "$spackPhase" ];
+    spackPhase = ''${spackPython} ${../spack/generate.py}'';
     withRepos = true;
   };
 
