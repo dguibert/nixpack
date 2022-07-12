@@ -17,7 +17,7 @@ jsons = {
 };
 in
 packs.spackBuilder ({
-  args = [./modules.py];
+  args = ["-xc" "${packs.spackPython} ${./modules.py}"];
   inherit name modtype;
   withRepos = true;
 } // builtins.mapAttrs (name: builtins.toJSON) jsons // {
