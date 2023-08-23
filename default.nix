@@ -156,11 +156,11 @@ bootstrapPacks = packs.withPrefs {
       extern = "/usr"; /* install prefix */
       /* can also have multiple layers of bootstrapping, where each compiler is built by another */
     };
-    /* can speed up bootstrapping by providing more externs
+    /* can speed up bootstrapping by providing more externs */
     zlib = {
-      extern = "/usr";
-      version = "...";
-    }; ... */
+      extern = packs.nixpkgs.zlib;
+      version = packs.nixpkgs.zlib.version;
+    };
   };
 };
 
