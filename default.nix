@@ -13,10 +13,9 @@ packs = import ./packs {
      See also repos and repoPatch below for other ways of updating packages
      without modifying the spack repo.  */
   spackSrc = {
-    /* default:
-    url = "https://github.com/spack/spack"; */
+    url = "https://github.com/dguibert/spack";
     ref = "develop";
-    #rev = "a5c0a4dca41d3b14c166af2ca28cb4ee7ca10ca7";
+    #rev = "c882214273793c52f2865e068aa0499c610a2f37";
   };
   /* extra config settings for spack itself.  Can contain any standard spack
      configuration, but don't put compilers (automatically generated), packages
@@ -39,8 +38,8 @@ packs = import ./packs {
   /* packs can optionally include nixpkgs for additional packages or bootstrapping.
      omit to disable. */
   nixpkgsSrc = {
-    #url = "https://github.com/NixOS/nixpkgs";
-    ref = "release-21.11";
+    url = "https://github.com/NixOS/nixpkgs";
+    ref = "master";
     #rev = "c8c5faff75fd017e468e8733312525b51cea1af2";
   };
 
@@ -67,7 +66,7 @@ packs = import ./packs {
   /* global defaults for all packages (merged with per-package prefs) */
   global = {
     /* spack architecture target */
-    target = "broadwell";
+    target = "x86-64";
     /* set spack verbose to print build logs during spack bulids (and thus
        captured by nix).  regardless, spack also keeps logs in pkg/.spack.  */
     verbose = false;
