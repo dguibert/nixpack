@@ -1,6 +1,19 @@
 self: pkgs:
 with pkgs;
 
+let
+  llvm_patch = llvmPackages: llvmPackages // (let
+    tools = llvmPackages.tools.extend (self: super: {
+      # broken glob test?
+      libllvm = super.libllvm.overrideAttrs (old: {
+        postPatch = old.postPatch + ''
+          rm test/Other/ChangePrinters/DotCfg/print-changed-dot-cfg.ll
+        '';
+      });
+    });
+    in { inherit tools; } // tools);
+in
+
 {
   gnutls = gnutls.overrideAttrs (old: {
     doCheck = false; # failure test-getaddrinfo
@@ -48,6 +61,14 @@ with pkgs;
     doInstallCheck = false;
   });
 
+  bind = bind.overrideAttrs (old: {
+    doCheck = false; # netmgr/tlsdns.c failure
+  });
+
+  p11-kit = p11-kit.overrideAttrs (old: {
+    doCheck = false; # test-compat sigabrt
+  });
+
   git = git.overrideAttrs (old: {
     doInstallCheck = false; # failure
   });
@@ -93,6 +114,11 @@ with pkgs;
     doCheck = false; # failure
   });
 
+  tbb_2020_3 = tbb_2020_3.overrideAttrs (old: {
+    # avoid some broken (bun unnecessary) patches
+    patches = lib.take 2 old.patches;
+  });
+
   openimageio = openimageio.overrideAttrs (old: {
     # avoid finding system libjpeg.so
     cmakeFlags = old.cmakeFlags ++ ["-DJPEGTURBO_PATH=${libjpeg.out}"];
@@ -127,27 +153,9 @@ with pkgs;
     cmakeFlags = old.cmakeFlags ++ ["-DBerkeleyDB_ROOT_DIR=${db}"];
   });
 
-  llvmPackages_14 = llvmPackages_14 // (let
-    tools = llvmPackages_14.tools.extend (self: super: {
-      # broken glob test?
-      libllvm = super.libllvm.overrideAttrs (old: {
-        postPatch = old.postPatch + ''
-          rm test/Other/ChangePrinters/DotCfg/print-changed-dot-cfg.ll
-        '';
-      });
-    });
-    in { inherit tools; } // tools);
-
-  llvmPackages_15 = llvmPackages_15 // (let
-    tools = llvmPackages_15.tools.extend (self: super: {
-      # broken glob test?
-      libllvm = super.libllvm.overrideAttrs (old: {
-        postPatch = old.postPatch + ''
-          rm test/Other/ChangePrinters/DotCfg/print-changed-dot-cfg.ll
-        '';
-      });
-    });
-    in { inherit tools; } // tools);
+  llvmPackages_14 = llvm_patch llvmPackages_14;
+  llvmPackages_15 = llvm_patch llvmPackages_15;
+  llvmPackages_16 = llvm_patch llvmPackages_16;
 
   libxcrypt = libxcrypt.overrideAttrs (old: {
     /* sign-conversion warnings: */
@@ -172,6 +180,19 @@ with pkgs;
       });
       eventlet = super.eventlet.overridePythonAttrs (old: {
         # needs libredirect
+        doCheck = false;
+      });
+      numpy = super.numpy.overridePythonAttrs (old: {
+        # FAIL: test_dtype.py::TestStructuredObjectRefcounting::test_structured_object_item_setting[<structured subarray 2>] - assert 190388 == 190386
+        doCheck = false;
+      });
+    };
+  };
+
+  python311 = python311.override {
+    packageOverrides = self: super: {
+      numpy = super.numpy.overridePythonAttrs (old: {
+        # FAIL: TestAccuracy.test_validate_transcendentals
         doCheck = false;
       });
     };
@@ -200,4 +221,42 @@ with pkgs;
       sed -i '/SDL_VIDEO_DRIVER_X11_CONST_PARAM_XDATA32/s/.*/#define SDL_VIDEO_DRIVER_X11_CONST_PARAM_XDATA32 1/' include/SDL_config.h
     '';
   });
+
+  umockdev = umockdev.overrideAttrs (old: {
+    doCheck = false; # static-code unknown failure
+  });
+
+  libproxy = libproxy.overrideAttrs (old: {
+    cmakeFlags = old.cmakeFlags ++ ["-DWITH_PERL=no"];
+  });
+
+  libpsl = libpsl.overrideAttrs (old: {
+    doCheck = false; # valgrind unknown instruction
+  });
+
+  haskell = haskell // {
+    packages = haskell.packages // {
+      ghc8107Binary = haskell.packages.ghc8107Binary.override {
+        ghc = haskell.packages.ghc8107Binary.ghc.overrideAttrs (old: {
+          postUnpack = old.postUnpack + ''
+            patchShebangs ghc-${old.version}/inplace/bin
+          '';
+        });
+      };
+    };
+    packageOverrides = self: super: {
+      crypton = super.crypton.overrideAttrs (old: {
+        # FAIL: Ed448 verify sig?
+        doCheck = false;
+      });
+      cryptonite = super.cryptonite.overrideAttrs (old: {
+        # FAIL: Ed448 verify sig?
+        doCheck = false;
+      });
+      http2 = super.http2.overrideAttrs (old: {
+        # tests hang
+        doCheck = false;
+      });
+    };
+  };
 }

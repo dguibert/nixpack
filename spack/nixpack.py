@@ -57,9 +57,9 @@ class NixStore():
     layout = NixLayout()
     # this is used to find bin/sbang:
     unpadded_root = spack.paths.prefix
-spack.store.store = NixStore()
+spack.store.STORE = NixStore()
 
-spack.config.command_line_scopes = getVar('spackConfig').split()
+spack.config.COMMAND_LINE_SCOPES = getVar('spackConfig').split()
 spack.config.CONFIG.remove_scope('system')
 spack.config.CONFIG.remove_scope('user')
 
@@ -273,6 +273,10 @@ class NixSpec(spack.spec.Spec):
             else:
                 v = spack.variant.SingleValuedVariant(n, s)
             self.variants[n] = v
+        valid_flags = self.compiler_flags.valid_compiler_flags()
+        for n, s in nixspec['flags'].items():
+            assert n in valid_flags and type(s) is list, f"{self.name} has invalid compiler flag {n}"
+            self.compiler_flags[n] = s
         self.tests = nixspec['tests']
         self.paths = {n: p and os.path.join(prefix, p) for n, p in nixspec['paths'].items()}
         if self.external:
@@ -286,12 +290,19 @@ class NixSpec(spack.spec.Spec):
         self.compiler = self.get(compiler, top=False).as_compiler if compiler else nullCompiler
 
         for n, d in sorted(depends.items()):
-            dtype = spack.dependency.canonical_deptype(nixspec['deptypes'].get(n) or ())
+            dtype = nixspec['deptypes'].get(n) or ()
+            try:
+                dtype = spack.deptypes.canonicalize(dtype)
+            except AttributeError:
+                dtype = spack.dependency.canonical_deptype(dtype)
             if d:
                 dep = self.get(d, top=False)
                 cdep = None # any current dep on this package
                 if hasattr(self, 'add_dependency_edge'):
-                    cdeps = self._dependencies.select(child=dep.name, deptypes=dtype)
+                    try:
+                        cdeps = self._dependencies.select(child=dep.name, depflag=dtype)
+                    except TypeError:
+                        cdeps = self._dependencies.select(child=dep.name, deptypes=dtype)
                     if len(cdeps) == 1:
                         # if multiple somehow, _add_dependency should catch it
                         cdep = cdeps[0]
@@ -302,10 +313,14 @@ class NixSpec(spack.spec.Spec):
                     cdep.update_deptypes(dtype)
                 else:
                     try:
-                        self._add_dependency(dep, deptypes=dtype)
+                        self._add_dependency(dep, depflag=dtype, virtuals=())
                     except TypeError:
                         self._add_dependency(dep, deptypes=dtype, virtuals=())
-            if not ('link' in dtype or 'run' in dtype):
+            try:
+                lrdep = dtype & (spack.deptypes.LINK | spack.deptypes.RUN)
+            except AttributeError:
+                lrdep = 'link' in dtype or 'run' in dtype
+            if not lrdep:
                 # trim build dep references
                 del nixspec['depends'][n]
 
@@ -313,7 +328,7 @@ class NixSpec(spack.spec.Spec):
             self.compiler_flags[f] = []
 
         if nixspec['patches']:
-            patches = self.package_class.patches.setdefault(spack.directives.make_when_spec(True), [])
+            patches = self.package_class.patches.setdefault(spack.spec.Spec(), [])
             for i, p in enumerate(nixspec['patches']):
                 patches.append(spack.patch.FilePatch(self.package_class, p, 1, '.', ordering_key = ('~nixpack', i)))
             spack.repo.PATH.patch_index.update_package(self.fullname)
@@ -410,6 +425,7 @@ nullCompilerSpec = NixSpec({
         'version': '0',
         'extern': '/null-compiler',
         'variants': {},
+        'flags': {},
         'tests': False,
         'paths': {
             'cc': None,

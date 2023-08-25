@@ -129,22 +129,20 @@ lib.fix (packs: with packs; {
     PYTHONPATH = "${spackNixLib}:${spack}/lib/spack:${spack}/lib/spack/external:${spack}/lib/spack/external/_vendoring";
     LC_ALL = "en_US.UTF-8"; # work around spack bugs processing log files
     repos = if attrs ? withRepos
-      then if attrs.withRepos
-        then repos
-        else null
-      else map (r: (builtins.path { path=r + "/repo.yaml";})) repos;
-    spackCache = if attrs.withRepos or false then spackCacheRepos else spackCache;
+      then lib.when attrs.withRepos repos
+      else map (r: (builtins.path { name="repo.yaml"; path="${r}/repo.yaml"; })) repos;
+    spackCache = lib.when (packPrefs.spackCache or true) (if packPrefs.spackCacheRepos or true && attrs.withRepos or false then spackCacheRepos else spackCache);
   } // attrs)) ["PYTHONPATH" "PATH" "LC_ALL" "spackConfig" "spackCache" "passAsFile"];
 
   /* pre-generated spack repo index cache (both with and without overlay repos) */
   makeSpackCache = withRepos: lib.when (builtins.isAttrs spackSrc)
-    (spackBuilder ({
+    (spackBuilder {
       name = "spack-cache" + (if withRepos then "-repos" else "");
       args = ["-xc" "$spackPhase" ];
       spackPhase = ''${spackPython} ${../spack/cache.py}'';
       spackCache = null;
       inherit withRepos;
-    }));
+    });
 
   spackCache      = makeSpackCache false;
   spackCacheRepos = makeSpackCache true;
@@ -177,6 +175,7 @@ lib.fix (packs: with packs; {
   fillPrefs =
     { version ? null
     , variants ? {}
+    , flags ? {}
     , patches ? []
     , depends ? {}
     , extern ? null
@@ -192,7 +191,7 @@ lib.fix (packs: with packs; {
     , verbose ? false # only used by builder
     } @ prefs:
     prefs // {
-      inherit version variants patches depends extern modules tests provides fixedDeps target paths;
+      inherit version variants flags patches depends extern modules tests provides fixedDeps target paths;
       resolver = deptype: name: let r = lib.applyOptional (lib.applyOptional resolver deptype) name; in
         if builtins.isFunction r then r
         else (lib.coalesce r packs).getResolver name;
@@ -310,7 +309,7 @@ lib.fix (packs: with packs; {
           verbose = pprefs.verbose or false;
           spec = builtins.toJSON spec;
           passAsFile = ["spec"];
-          repoPkgs = map (r: let p = r + "/packages/${pname}"; in
+          repoPkgs = map (r: let p = "${r}/packages/${pname}"; in
             lib.when (builtins.pathExists p) (builtins.path { name="repo-pkgs-${pname}"; path=p; })) repos;
         } // desc.build // pprefs.build or {}) // {
           inherit spec;
@@ -323,7 +322,7 @@ lib.fix (packs: with packs; {
           prefs = fillPrefs pprefs;
           spec = {
             inherit (desc) name namespace provides;
-            inherit (prefs) extern modules tests;
+            inherit (prefs) flags extern modules tests;
             target = spackTarget prefs.target;
             paths = desc.paths // prefs.paths;
             version = if prefs.extern != null && lib.versionIsConcrete prefs.version

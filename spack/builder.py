@@ -7,6 +7,13 @@ import json
 import nixpack
 import spack
 
+try:
+    from spack.context import Context
+except ImportError:
+    class Context:
+        BUILD = 'build'
+        TEST = 'test'
+
 # disable pre_ and post_install hooks (sbang, permissions, licensing)
 def noop_hook(*args, **kwargs):
     pass
@@ -31,7 +38,11 @@ spec.concretize()
 
 pkg = spec.package
 pkg.run_tests = spec.tests
-print(spec.tree(cover='edges', format=spack.spec.default_format + ' {/hash}', show_types=True))
+try:
+    default_format = spack.spec.DEFAULT_FORMAT
+except AttributeError:
+    default_format = spack.spec.default_format
+print(spec.tree(cover='edges', format=default_format + ' {/hash}', show_types=True))
 
 opts = {
         'install_deps': False,
@@ -53,7 +64,7 @@ if setup:
 origenv = os.environ.copy()
 spack.main.set_working_dir()
 # create and stash some metadata
-spack.build_environment.setup_package(pkg, True, context='build')
+spack.build_environment.setup_package(pkg, True, context=Context.BUILD)
 os.makedirs(pkg.metadata_dir, exist_ok=True)
 
 # log build phases to nix
@@ -70,6 +81,12 @@ else:
     for phase in builder:
         phase.execute = functools.partial(wrapPhase, phase.name, phase.execute)
 
+if not opts['verbose']:
+    def print_log(pkg, phase, log):
+        with open(log, 'r') as f:
+            print(f.read())
+    spack.hooks.on_phase_error = print_log
+
 # make sure cache is group-writable (should be configurable, ideally in spack)
 os.umask(0o002)
 # do the actual install
@@ -78,7 +95,7 @@ spack.installer.build_process(pkg, opts)
 # we do this even if not testing as it may create more things (e.g., perl "extensions")
 os.environ.clear()
 os.environ.update(origenv)
-spack.build_environment.setup_package(pkg, True, context='test')
+spack.build_environment.setup_package(pkg, True, context=Context.TEST)
 
 with open(os.path.join(spec.prefix, nixpack.NixSpec.nixSpecFile), 'w') as sf:
     json.dump(spec.nixspec, sf)
