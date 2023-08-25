@@ -143,7 +143,11 @@ class ModSpec:
             return layout.filename
 
     def __str__(self):
-        return self.spec.cformat(spack.spec.default_format + ' {prefix}')
+        try:
+            default_format = spack.spec.DEFAULT_FORMAT
+        except AttributeError:
+            default_format = spack.spec.default_format
+        return self.spec.cformat(default_format + ' {prefix}')
 
     def write(self, fn):
         dn = os.path.dirname(fn)

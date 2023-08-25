@@ -31,7 +31,11 @@ spec.concretize()
 
 pkg = spec.package
 pkg.run_tests = spec.tests
-print(spec.tree(cover='edges', format=spack.spec.default_format + ' {/hash}', show_types=True))
+try:
+    default_format = spack.spec.DEFAULT_FORMAT
+except AttributeError:
+    default_format = spack.spec.default_format
+print(spec.tree(cover='edges', format=default_format + ' {/hash}', show_types=True))
 
 opts = {
         'install_deps': False,
@@ -69,6 +73,12 @@ else:
     builder = spack.builder.create(pkg)
     for phase in builder:
         phase.execute = functools.partial(wrapPhase, phase.name, phase.execute)
+
+if not opts['verbose']:
+    def print_log(pkg, phase, log):
+        with open(log, 'r') as f:
+            print(f.read())
+    spack.hooks.on_phase_error = print_log
 
 # make sure cache is group-writable (should be configurable, ideally in spack)
 os.umask(0o002)
