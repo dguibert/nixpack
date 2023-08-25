@@ -25,7 +25,7 @@ corePacks = import ../packs {
     /* -------- upstream spack version -------- */
     url = "https://github.com/flatironinstitute/spack";
     ref = "fi-nixpack";
-    rev = "fc8a6b87995b0e76cd7bcc208df367b7ac904451";
+    rev = "180fb7a37f0b47056776830d8170b296d96d993f";
   };
 
   spackConfig = {
@@ -72,6 +72,41 @@ corePacks = import ../packs {
     aocc = {
       variants = {
         license-agreed = true;
+      };
+    };
+    ascent = {
+      variants = {
+        vtkh = false;
+        raja = true;
+        cuda = true;
+        inherit cuda_arch;
+        python = true;
+      };
+    };
+    conduit = {
+      variants = {
+        hdf5_compat = false;
+        python = true;
+      };
+    };
+    camp = {
+      variants = {
+        openmp = true;
+        cuda = true;
+        inherit cuda_arch;
+      };
+    };
+    raja = {
+      variants = {
+        cuda = true;
+        inherit cuda_arch;
+      };
+    };
+    umpire = {
+      variants = {
+        cuda = true;
+        inherit cuda_arch;
+        shared = false;
       };
     };
     bazel = {
@@ -161,13 +196,13 @@ corePacks = import ../packs {
     };
     cuda = {
       # make sure this is <= image driver
-      version = "11.8";
+      version = "12";
       depends = {
         libxml2 = rpmExtern "libxml2";
       };
     };
     cudnn = {
-      version = "8.9.2.26-11.x";
+      version = "8.9.2.26-12.x";
     };
     curl = {
       version = "7";  # for r
@@ -323,9 +358,9 @@ corePacks = import ../packs {
       };
     };
     intel-oneapi-compilers = {
-      variants = {
-        codeplay = true;
-      };
+      # variants = {
+      #   codeplay = true;
+      # };
     };
     libaio = {
       # needs mke2fs?
@@ -511,6 +546,10 @@ corePacks = import ../packs {
         osmesa = false;
       };
     };
+    patchelf = {
+      # for intel-oneapi-compilers
+      version = "0.17";
+    };
     petsc = {
       variants = {
         hdf5 = false;
@@ -540,6 +579,13 @@ corePacks = import ../packs {
     protobuf = {
       # for py-protobuf
       version = "3.20";
+    };
+    py-astroid = {
+      depends = {
+        py-setuptools = {
+          version = "62.6";
+        };
+      };
     };
     py-astropy = {
       depends = {
@@ -573,6 +619,10 @@ corePacks = import ../packs {
         cuda = true;
         inherit cuda_arch;
       };
+    };
+    py-cython = {
+      # for numpy
+      version = "0.29";
     };
     py-dedalus = {
       depends = {
@@ -673,7 +723,7 @@ corePacks = import ../packs {
     };
     py-numpy = {
       # for py-tensorflow
-      version = ":1.23";
+      version = ":1.24.3";
     };
     libwebp = {
       # for py-pillow
@@ -692,6 +742,10 @@ corePacks = import ../packs {
         imagequant = true;
       };
     };
+    py-pip = {
+      # for py-astropy and others that require --install-options
+      version = ":23.0";
+    };
     py-pkgutil-resolve-name = {
       depends = {
         py-flit-core = {
@@ -699,14 +753,17 @@ corePacks = import ../packs {
         };
       };
     };
-    py-pybind11 = {
-      # for py-torch
-      version = "2.10.1";
-    };
     py-pyfftw = {
       depends = {
         py-setuptools = {
           version = "59";
+        };
+      };
+    };
+    py-pylint = {
+      depends = {
+        py-setuptools = {
+          version = "62.6";
         };
       };
     };
@@ -727,10 +784,7 @@ corePacks = import ../packs {
     py-pyqt5 = {
       depends = {
         py-sip = {
-          variants = {
-            module = "PyQt5.sip";
-          };
-          version = "4";
+          version = "6.6.2:6";
         };
       };
     };
@@ -740,6 +794,20 @@ corePacks = import ../packs {
           variants = {
             toml = true;
           };
+        };
+      };
+    };
+    py-pywavelets = {
+      depends = {
+        py-setuptools = {
+          version = "64";
+        };
+      };
+    };
+    py-sqlalchemy = {
+      depends = {
+        py-typing-extensions = {
+          version = "4.2.0";
         };
       };
     };
@@ -765,17 +833,6 @@ corePacks = import ../packs {
         };
       };
     };
-    py-scipy = {
-      depends = {
-        py-meson-python = {
-          version = "0.12";
-        };
-      };
-    };
-    py-setuptools = {
-      # for py-numpy, py-satroid, and others
-      version = "62";
-    };
     py-setuptools-scm = {
       variants = {
         toml = true;
@@ -785,6 +842,14 @@ corePacks = import ../packs {
       variants = {
         inherit cuda_arch;
         xla = true;
+      };
+      depends = {
+        py-gast = {
+          version = "0.4.0";
+        };
+        py-typing-extensions = {
+          version = "4.5";
+        };
       };
     };
     re2 = {
@@ -797,16 +862,19 @@ corePacks = import ../packs {
       # for py-tensorflow
       version = "14";
     };
-    py-google-auth-oauthlib = {
-      # for py-tensorflow
-      version = "0.4";
-    };
     py-torch = {
       variants = {
         inherit cuda_arch;
         valgrind = false;
       };
-      depends = blasVirtuals { name = "openblas"; }; # doesn't find flexiblas
+      depends = {
+        py-pybind11 = {
+          # for py-torch
+          version = "2.10.1";
+        };
+      } // blasVirtuals {
+        name = "openblas";
+      }; # doesn't find flexiblas
     };
     # py-torchaudio = {
     #   build = {
@@ -1350,7 +1418,6 @@ mkPythons = base: gen:
     });
   }))
   [ /* -------- pythons -------- */
-    { version = "3.8"; }
     { version = "3.9"; }
     { version = "3.10"; }
     { version = "3.11"; }
@@ -1833,6 +1900,7 @@ pkgStruct = {
           { pkg = gromacs.withPrefs { version = "2022.5"; variants = { plumed = true; }; };
             projection = "{name}/mpi-plumed-{version}"; }
           plumed
+          ascent
         ]
         ++
         lib.optionals comp.isCore [
