@@ -100,6 +100,14 @@ rec {
       if l == 2 then { min = head s; max = elemAt s 1; } else
       throw "invalid version range ${v}";
 
+  versionIsGitRef = v: v != null && match "git\\..*=.*" v != null;
+
+  versionWithGitRef = v: let
+      s = splitRegex "git\\..*=" v;
+      l = length s;
+    in
+    if l == 2 then head (tail s) else v;
+
   rangeVersion = a: b:
     if a == b then a else "${a}:${b}";
 
@@ -111,7 +119,7 @@ rec {
       versionMatch = m:
         if hasPrefix "=" m then v == substring 1 (-1) m else
         let
-          mr = versionRange m;
+          mr = versionRange (versionWithGitRef m);
         in versionAtLeast v mr.min &&
            (versionAtMostSpec v mr.max);
     in any versionMatch (splitRegex "," match);

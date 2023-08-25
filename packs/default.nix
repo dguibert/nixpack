@@ -238,7 +238,8 @@ lib.fix (packs: with packs; {
         let v = builtins.filter (v: lib.versionMatches v pref) arg;
         in if v == []
           then throw "${pname}: no version matching ${toString pref} from ${builtins.concatStringsSep "," arg}"
-          else builtins.head v;
+          else
+            if lib.versionIsGitRef pref then pref else builtins.head v;
       resolveVariants = resolveEach (vname: arg: pref:
         let err = throw "${pname} variant ${vname}: invalid ${builtins.toJSON pref} (for ${builtins.toJSON arg})"; in
         if pref == null then
