@@ -31,7 +31,7 @@ spec.concretize()
 
 pkg = spec.package
 pkg.run_tests = spec.tests
-print(spec.tree(cover='edges', format=spack.spec.default_format + ' {/hash}', show_types=True))
+print(spec.tree(cover='edges', format=spack.spec.DEFAULT_FORMAT + ' {/hash}', show_types=True))
 
 opts = {
         'install_deps': False,
