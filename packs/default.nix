@@ -82,6 +82,7 @@ packsWithPrefs =
   , spackSrc ? {}
   , spack ? if builtins.isString spackSrc then spackSrc else
     builtins.fetchGit ({ name = "spack"; url = "git://github.com/spack/spack"; } // spackSrc)
+  , spackCache ? true
   , spackConfig ? {}
   , spackPython ? "/usr/bin/python3"
   , spackShell ? "/bin/bash"
