@@ -89,9 +89,6 @@ class ModSpec:
             self.pkg = p.get('pkg', None)
         if self.pkg:
             self.spec = nixpack.NixSpec.get(self.pkg)
-            if self.spec.nixspec['compiler_spec'] != self.spec.nixspec['name']:
-                # override name with the compiler_spec (special nixpack case for compiler class)
-                self.spec.name = str(self.spec.as_compiler.name)
         else:
             self.spec = FakeSpec(p)
 
@@ -160,6 +157,10 @@ class ModSpec:
                 content.setdefault('spec', content)
                 content['spec'].setdefault('target', nixpack.basetarget)
                 content['spec'].setdefault('name', self.spec.name)
+                if self.spec.nixspec['compiler_spec'] != self.spec.nixspec['name']:
+                    # override name with the compiler_spec (special nixpack case for compiler class)
+                    content['spec'].setdefault('name', self.spec.as_compiler.name)
+
                 content['spec'].setdefault('short_spec', 'static module via nixpack')
                 content.setdefault('timestamp', datetime.datetime.now())
                 content = template.render(content)
